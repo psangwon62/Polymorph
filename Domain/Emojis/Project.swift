@@ -8,6 +8,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.sangwon.polymorph.emojisinterface",
+            deploymentTargets: .iOS("16.0"),
             sources: ["Interface/**"]
         ),
         .target(
@@ -15,6 +16,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.sangwon.polymorph.emojis",
+            deploymentTargets: .iOS("16.0"),
             sources: ["Sources/**"],
             dependencies: [
                 .target(name: "EmojisInterface"),
@@ -25,6 +27,7 @@ let project = Project(
             destinations: .iOS,
             product: .unitTests,
             bundleId: "com.sangwon.polymorph.emojistests",
+            deploymentTargets: .iOS("16.0"),
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "Emojis"),

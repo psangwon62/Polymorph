@@ -1,36 +1,36 @@
 import ProjectDescription
 
 let project = Project(
-    name: "Logger",
+    name: "ImageProcessing",
     targets: [
         .target(
-            name: "LoggerInterface",
+            name: "ImageProcessingInterface",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.sangwon.polymorph.loggerinterface",
+            bundleId: "com.sangwon.polymorph.imageprocessinginterface",
             deploymentTargets: .iOS("16.0"),
             sources: ["Interface/**"]
         ),
         .target(
-            name: "Logger",
+            name: "ImageProcessing",
             destinations: .iOS,
             product: .framework,
-            bundleId: "com.sangwon.polymorph.logger",
+            bundleId: "com.sangwon.polymorph.imageprocessing",
             deploymentTargets: .iOS("16.0"),
             sources: ["Sources/**"],
             dependencies: [
-                .target(name: "LoggerInterface"),
+                .target(name: "ImageProcessingInterface"),
             ]
         ),
         .target(
-            name: "LoggerTests",
+            name: "ImageProcessingTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "com.sangwon.polymorph.loggertests",
+            bundleId: "com.sangwon.polymorph.imageprocessingtests",
             deploymentTargets: .iOS("16.0"),
             sources: ["Tests/**"],
             dependencies: [
-                .target(name: "Logger"),
+                .target(name: "ImageProcessing"),
             ]
         ),
     ],
