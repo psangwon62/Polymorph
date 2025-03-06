@@ -45,5 +45,6 @@ let project = Project(
             dependencies: [.target(name: "Polymorph")]
         ),
     ],
+    schemes: [.scheme(name: "ImageProcessingExample")],
     fileHeaderTemplate: ""
 )

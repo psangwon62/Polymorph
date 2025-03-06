@@ -33,6 +33,29 @@ let project = Project(
                 .target(name: "ImageProcessing"),
             ]
         ),
+        .target(
+            name: "ImageProcessingExample",
+            destinations: .iOS,
+            product: .app,
+            bundleId: "com.sangwon.polymorph.imageprocessingexample",
+            deploymentTargets: .iOS("16.0"),
+            infoPlist: .extendingDefault(with: [
+                "UILaunchScreen": [:],
+                "NSPhotoLibraryUsageDescription": "이미지 색상 추출을 위해 사진 접근이 필요합니다.",
+            ]),
+            sources: ["Example/Sources/**"],
+            resources: ["Example/Resources/**"],
+            dependencies: [
+                .target(name: "ImageProcessing"),
+            ]
+        ),
+    ],
+    schemes: [
+        .scheme(name: "ImageProcessingExample"),
+        .scheme(
+            name: "ImageProcessingTests",
+            buildAction: .buildAction(targets: ["ImageProcessingTests"])
+        ),
     ],
     fileHeaderTemplate: nil
 )
