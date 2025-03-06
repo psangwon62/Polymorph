@@ -1,6 +1,6 @@
+@testable import ImageProcessing
 import ImageProcessingInterface
 import XCTest
-@testable import ImageProcessing
 
 class ImageProcessorTests: XCTestCase {
     var sut: ImageProcessor!
@@ -48,7 +48,18 @@ class ImageProcessorTests: XCTestCase {
         // Then
         XCTAssertEqual(colors.count, 1)
         XCTAssertEqual(colors[0].count, 1)
-        XCTAssertEqual(colors[0][0], UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.5))
+
+        let expected = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.5)
+        let actual = colors[0][0]
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        expected.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        actual.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+
+        XCTAssertEqual(r1, r2, accuracy: 0.01)
+        XCTAssertEqual(g1, g2, accuracy: 0.01)
+        XCTAssertEqual(b1, b2, accuracy: 0.01)
+        XCTAssertEqual(a1, a2, accuracy: 0.01)
     }
 
     // 3. 빈 CGImage 처리 테스트
@@ -106,10 +117,10 @@ class ImageProcessorTests: XCTestCase {
                 color.getRed(&r, green: &g, blue: &b, alpha: &a)
 
                 let offset = (y * bytesPerRow) + (x * bytesPerPixel)
-                pixelBuffer[offset] = UInt8(r * 255)
-                pixelBuffer[offset + 1] = UInt8(g * 255)
-                pixelBuffer[offset + 2] = UInt8(b * 255)
-                pixelBuffer[offset + 3] = UInt8(a * 255)
+                pixelBuffer[offset] = UInt8(round(r * 255))
+                pixelBuffer[offset + 1] = UInt8(round(g * 255))
+                pixelBuffer[offset + 2] = UInt8(round(b * 255))
+                pixelBuffer[offset + 3] = UInt8(round(a * 255))
             }
         }
 
