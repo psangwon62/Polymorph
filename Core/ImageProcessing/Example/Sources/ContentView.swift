@@ -59,19 +59,16 @@ struct ContentView: View {
 
             if !colors.isEmpty {
                 ScrollView(.vertical) {
-                    LazyVStack(spacing: 1) {
-                        ForEach(0 ..< colors.count, id: \.self) { row in
-                            HStack(spacing: 1) {
-                                ForEach(0 ..< colors[row].count, id: \.self) { col in
-                                    Rectangle()
-                                        .fill(Color(colors[row][col]))
-                                        .frame(width: 1, height: 1)
-                                }
+                    Canvas { context, _ in
+                        let pixelSize: CGFloat = 1
+                        for row in 0 ..< colors.count {
+                            for col in 0 ..< colors[row].count {
+                                let rect = CGRect(x: CGFloat(col) * pixelSize, y: CGFloat(row) * pixelSize, width: pixelSize, height: pixelSize)
+                                context.fill(Path(rect), with: .color(Color(colors[row][col])))
                             }
                         }
                     }
-                    .padding(5)
-
+                    .frame(width: CGFloat(colors[0].count) * 1, height: CGFloat(colors.count) * 1)
                     Text("크기: \(colors.count) x \(colors.first?.count ?? 0) 픽셀")
                         .font(.subheadline)
                         .padding(.top, 10)
