@@ -20,6 +20,7 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .target(name: "ImageProcessingInterface"),
+                .project(target: "Logger", path: .relativeToRoot("Shared/Logger")),
             ]
         ),
         .target(
