@@ -3,11 +3,11 @@ import ImageProcessingInterface
 import XCTest
 
 class ImageProcessorTests: XCTestCase {
-    var sut: ImageProcessor!
+    var sut: ImageProcessorImpl!
 
     override func setUp() {
         super.setUp()
-        sut = ImageProcessor()
+        sut = ImageProcessorImpl()
     }
 
     override func tearDown() {

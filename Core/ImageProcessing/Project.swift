@@ -51,7 +51,10 @@ let project = Project(
         ),
     ],
     schemes: [
-        .scheme(name: "ImageProcessingExample"),
+        .scheme(name: "ImageProcessingExample",
+                buildAction: .buildAction(targets: ["ImageProcessingExample"]),
+                runAction: .runAction(executable: "ImageProcessingExample")
+               ),
         .scheme(
             name: "ImageProcessingTests",
             buildAction: .buildAction(targets: ["ImageProcessingTests"])
