@@ -8,7 +8,7 @@ public final class ImageProcessorImpl: ImageProcessing {
         return image.cgImage
     }
 
-    public func extractColors(from image: UIImage) -> [[UIColor]] {
+    public func extractColors(from image: UIImage) async -> [[UIColor]] {
         guard let cgImage = image.cgImage else { return [] }
 
         let width = cgImage.width
@@ -21,14 +21,58 @@ public final class ImageProcessorImpl: ImageProcessing {
         let bytesPerPixel = bitsPerPixel / 8
 
         guard bytesPerPixel >= 3,
-              let context = createContext(width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, colorSpace: colorSpace, bitmapInfo: bitmapInfo),
-              let pixelBuffer = renderPixelData(cgImage: cgImage, context: context, width: width, height: height)
+              let context = createContext(
+                  width: width,
+                  height: height,
+                  bitsPerComponent: bitsPerComponent,
+                  bytesPerRow: bytesPerRow,
+                  colorSpace: colorSpace,
+                  bitmapInfo: bitmapInfo
+              ),
+              let pixelBuffer = renderPixelData(
+                  cgImage: cgImage,
+                  context: context,
+                  width: width,
+                  height: height
+              )
         else { return [] }
 
-        return convertToColors(pixelBuffer: pixelBuffer, width: width, height: height, bytesPerRow: bytesPerRow, bytesPerPixel: bytesPerPixel)
+        let processorCount = ProcessInfo.processInfo.activeProcessorCount
+        let chunks = stride(from: 0, to: height, by: height / processorCount).map {
+            ($0, min($0 + height / processorCount, height))
+        }
+
+        return await withTaskGroup(of: (Int, [[UIColor]]).self) { group in
+            for (start, end) in chunks {
+                group.addTask(priority: .userInitiated) {
+                    let rows = self.convertToColors(
+                        pixelBuffer: pixelBuffer,
+                        width: width,
+                        startY: start,
+                        endY: end,
+                        bytesPerRow: bytesPerRow,
+                        bytesPerPixel: bytesPerPixel
+                    )
+                    return (start, rows)
+                }
+            }
+            
+            var results: [(Int, [[UIColor]])] = []
+            for await result in group {
+                results.append(result)
+            }
+            return results.sorted { $0.0 < $1.0 }.flatMap { $0.1 }
+        }
     }
 
-    private func createContext(width: Int, height: Int, bitsPerComponent: Int, bytesPerRow: Int, colorSpace: CGColorSpace, bitmapInfo: UInt32) -> CGContext? {
+    private func createContext(
+        width: Int,
+        height: Int,
+        bitsPerComponent: Int,
+        bytesPerRow: Int,
+        colorSpace: CGColorSpace,
+        bitmapInfo: UInt32
+    ) -> CGContext? {
         return CGContext(
             data: nil,
             width: width,
@@ -40,14 +84,26 @@ public final class ImageProcessorImpl: ImageProcessing {
         )
     }
 
-    private func renderPixelData(cgImage: CGImage, context: CGContext, width: Int, height: Int) -> UnsafeMutableRawPointer? {
+    private func renderPixelData(
+        cgImage: CGImage,
+        context: CGContext,
+        width: Int,
+        height: Int
+    ) -> UnsafeMutableRawPointer? {
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         return context.data
     }
 
-    private func convertToColors(pixelBuffer: UnsafeMutableRawPointer, width: Int, height: Int, bytesPerRow: Int, bytesPerPixel: Int) -> [[UIColor]] {
+    private func convertToColors(
+        pixelBuffer: UnsafeMutableRawPointer,
+        width: Int,
+        startY: Int,
+        endY: Int,
+        bytesPerRow: Int,
+        bytesPerPixel: Int
+    ) -> [[UIColor]] {
         var colors: [[UIColor]] = []
-        for y in 0 ..< height {
+        for y in startY ..< endY {
             var row: [UIColor] = []
             for x in 0 ..< width {
                 let offset = y * bytesPerRow + x * bytesPerPixel
