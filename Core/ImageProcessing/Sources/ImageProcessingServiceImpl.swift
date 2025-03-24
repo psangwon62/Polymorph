@@ -15,7 +15,7 @@ public final class ImageProcessingServiceImpl: ImageProcessingService {
         guard let image = UIImage(data: input) else { return nil }
 
         logger.debug("Processing image...")
-        let colors = await processor.extractColors(from: image)
+        let colors = await processor.extractColors(from: image, downscale: .x64)
         logger.debug("Image Processing finished")
         
         return colors

@@ -3,13 +3,14 @@ import UIKit
 
 public final class ImageProcessorImpl: ImageProcessing {
     public init() {}
-    
+
     private func cgImage(from image: UIImage) -> CGImage? {
         return image.cgImage
     }
 
-    public func extractColors(from image: UIImage) async -> [[UIColor]] {
-        guard let cgImage = image.cgImage else { return [] }
+    public func extractColors(from image: UIImage, downscale: DownscaleOption = .x1) async -> [[UIColor]] {
+        let scaledImage = downscaleImage(image, option: downscale)
+        guard let cgImage = scaledImage.cgImage else { return [] }
 
         let width = cgImage.width
         let height = cgImage.height
@@ -21,20 +22,8 @@ public final class ImageProcessorImpl: ImageProcessing {
         let bytesPerPixel = bitsPerPixel / 8
 
         guard bytesPerPixel >= 3,
-              let context = createContext(
-                  width: width,
-                  height: height,
-                  bitsPerComponent: bitsPerComponent,
-                  bytesPerRow: bytesPerRow,
-                  colorSpace: colorSpace,
-                  bitmapInfo: bitmapInfo
-              ),
-              let pixelBuffer = renderPixelData(
-                  cgImage: cgImage,
-                  context: context,
-                  width: width,
-                  height: height
-              )
+              let context = createContext(width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, colorSpace: colorSpace, bitmapInfo: bitmapInfo),
+              let pixelBuffer = renderPixelData(cgImage: cgImage, context: context, width: width, height: height)
         else { return [] }
 
         let processorCount = ProcessInfo.processInfo.activeProcessorCount
@@ -45,24 +34,38 @@ public final class ImageProcessorImpl: ImageProcessing {
         return await withTaskGroup(of: (Int, [[UIColor]]).self) { group in
             for (start, end) in chunks {
                 group.addTask(priority: .userInitiated) {
-                    let rows = self.convertToColors(
-                        pixelBuffer: pixelBuffer,
-                        width: width,
-                        startY: start,
-                        endY: end,
-                        bytesPerRow: bytesPerRow,
-                        bytesPerPixel: bytesPerPixel
-                    )
+                    let rows = self.convertToColors(pixelBuffer: pixelBuffer, width: width, startY: start, endY: end, bytesPerRow: bytesPerRow, bytesPerPixel: bytesPerPixel)
                     return (start, rows)
                 }
             }
-            
-            var results: [(Int, [[UIColor]])] = []
+            var sortedResults: [(Int, [[UIColor]])] = []
             for await result in group {
-                results.append(result)
+                sortedResults.append(result)
             }
-            return results.sorted { $0.0 < $1.0 }.flatMap { $0.1 }
+            return sortedResults.sorted { $0.0 < $1.0 }.flatMap { $0.1 }
         }
+    }
+
+    private func downscaleImage(_ image: UIImage, option: DownscaleOption) -> UIImage {
+        guard option != .x1, let cgImage = image.cgImage else { return image }
+
+        let scale = option.scaleFactor
+        let newWidth = Int(image.size.width * scale)
+        let newHeight = Int(image.size.height * scale)
+
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: cgImage.bitsPerComponent,
+            bytesPerRow: 0,
+            space: cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: cgImage.bitmapInfo.rawValue
+        ) else { return image }
+
+        context.interpolationQuality = .none
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        return UIImage(cgImage: context.makeImage() ?? cgImage)
     }
 
     private func createContext(
