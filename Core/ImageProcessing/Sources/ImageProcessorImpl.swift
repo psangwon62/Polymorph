@@ -19,13 +19,20 @@ public final class ImageProcessorImpl: ImageProcessing {
         let height = cgImage.height
         let bitsPerComponent = cgImage.bitsPerComponent
         let bitsPerPixel = cgImage.bitsPerPixel
+        let bytesPerPixel = bitsPerPixel / 8
         let bytesPerRow = cgImage.bytesPerRow
         let colorSpace = cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
         let bitmapInfo = cgImage.bitmapInfo.rawValue
-        let bytesPerPixel = bitsPerPixel / 8
 
         guard bytesPerPixel >= 3,
-              let context = createContext(width: width, height: height, bitsPerComponent: bitsPerComponent, bytesPerRow: bytesPerRow, colorSpace: colorSpace, bitmapInfo: bitmapInfo),
+              let context = createContext(
+                  width: width,
+                  height: height,
+                  bitsPerComponent: bitsPerComponent,
+                  bytesPerRow: 0,
+                  colorSpace: colorSpace,
+                  bitmapInfo: bitmapInfo
+              ),
               let pixelBuffer = renderPixelData(cgImage: cgImage, context: context, width: width, height: height)
         else { return [] }
 
@@ -37,7 +44,15 @@ public final class ImageProcessorImpl: ImageProcessing {
         return await withTaskGroup(of: (Int, [[UIColor]]).self) { group in
             for (start, end) in chunks {
                 group.addTask(priority: .userInitiated) {
-                    let rows = self.convertToColors(pixelBuffer: pixelBuffer, width: width, startY: start, endY: end, bytesPerRow: bytesPerRow, bytesPerPixel: bytesPerPixel)
+                    let rows = self.convertToColors(
+                        pixelBuffer: pixelBuffer,
+                        width: width,
+                        startY: start,
+                        endY: end,
+                        bytesPerRow: bytesPerRow,
+                        bytesPerPixel: bytesPerPixel,
+                        bitsPerComponent: bitsPerComponent
+                    )
                     return (start, rows)
                 }
             }
@@ -51,23 +66,22 @@ public final class ImageProcessorImpl: ImageProcessing {
 
     private func downscaleImage(_ image: UIImage, option: DownscaleOption) -> UIImage {
         guard option != .x1, let cgImage = image.cgImage else { return image }
-
         let scale = option.scaleFactor
         let newWidth = Int(image.size.width * scale)
         let newHeight = Int(image.size.height * scale)
+        let newSize = CGSize(width: newWidth, height: newHeight)
 
-        guard let context = CGContext(
-            data: nil,
+        guard let context = createContext(
             width: newWidth,
             height: newHeight,
             bitsPerComponent: cgImage.bitsPerComponent,
             bytesPerRow: 0,
-            space: cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            colorSpace: cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: cgImage.bitmapInfo.rawValue
         ) else { return image }
 
         context.interpolationQuality = .none
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+        context.draw(cgImage, in: CGRect(origin: .zero, size: newSize))
         return UIImage(cgImage: context.makeImage() ?? cgImage)
     }
 
@@ -79,6 +93,13 @@ public final class ImageProcessorImpl: ImageProcessing {
         colorSpace: CGColorSpace,
         bitmapInfo: UInt32
     ) -> CGContext? {
+        var adjustedBitmapInfo = bitmapInfo
+
+        if bitsPerComponent == 16 {
+            adjustedBitmapInfo &= ~CGBitmapInfo.alphaInfoMask.rawValue
+            adjustedBitmapInfo |= CGImageAlphaInfo.premultipliedLast.rawValue
+        }
+
         return CGContext(
             data: nil,
             width: width,
@@ -86,7 +107,7 @@ public final class ImageProcessorImpl: ImageProcessing {
             bitsPerComponent: bitsPerComponent,
             bytesPerRow: bytesPerRow,
             space: colorSpace,
-            bitmapInfo: bitmapInfo
+            bitmapInfo: adjustedBitmapInfo
         )
     }
 
@@ -106,18 +127,34 @@ public final class ImageProcessorImpl: ImageProcessing {
         startY: Int,
         endY: Int,
         bytesPerRow: Int,
-        bytesPerPixel: Int
+        bytesPerPixel: Int,
+        bitsPerComponent: Int
     ) -> [[UIColor]] {
         var colors: [[UIColor]] = []
+        let channelMax = pow(2, Double(bitsPerComponent)) - 1
+        let bytesPerChannel = bitsPerComponent / 8
+
         for y in startY ..< endY {
             var row: [UIColor] = []
             for x in 0 ..< width {
                 let offset = y * bytesPerRow + x * bytesPerPixel
-                let r = CGFloat(pixelBuffer.load(fromByteOffset: offset, as: UInt8.self)) / 255.0
-                let g = CGFloat(pixelBuffer.load(fromByteOffset: offset + 1, as: UInt8.self)) / 255.0
-                let b = CGFloat(pixelBuffer.load(fromByteOffset: offset + 2, as: UInt8.self)) / 255.0
-                let a = bytesPerPixel > 3 ? CGFloat(pixelBuffer.load(fromByteOffset: offset + 3, as: UInt8.self)) / 255.0 : 1.0
-                row.append(UIColor(red: r, green: g, blue: b, alpha: a))
+                if bitsPerComponent == 16 {
+                    let rRaw = CGFloat(pixelBuffer.load(fromByteOffset: offset, as: UInt16.self)) / channelMax
+                    let gRaw = CGFloat(pixelBuffer.load(fromByteOffset: offset + bytesPerChannel, as: UInt16.self)) / channelMax
+                    let bRaw = CGFloat(pixelBuffer.load(fromByteOffset: offset + 2 * bytesPerChannel, as: UInt16.self)) / channelMax
+                    let a = bytesPerPixel > 6 ? CGFloat(pixelBuffer.load(fromByteOffset: offset + 3 * bytesPerChannel, as: UInt16.self)) / channelMax : 1.0
+                    let r = a > 0 ? rRaw / a : rRaw
+                    let g = a > 0 ? gRaw / a : gRaw
+                    let b = a > 0 ? bRaw / a : bRaw
+                    row.append(a > 0 ? UIColor(red: r, green: g, blue: b, alpha: a) : .clear)
+                }
+                else {
+                    let r = CGFloat(pixelBuffer.load(fromByteOffset: offset, as: UInt8.self)) / channelMax
+                    let g = CGFloat(pixelBuffer.load(fromByteOffset: offset + bytesPerChannel, as: UInt8.self)) / channelMax
+                    let b = CGFloat(pixelBuffer.load(fromByteOffset: offset + 2 * bytesPerChannel, as: UInt8.self)) / channelMax
+                    let a = bytesPerPixel > 3 ? CGFloat(pixelBuffer.load(fromByteOffset: offset + 3 * bytesPerChannel, as: UInt8.self)) / channelMax : 1.0
+                    row.append(a > 0 ? UIColor(red: r, green: g, blue: b, alpha: a) : .clear)
+                }
             }
             colors.append(row)
         }
