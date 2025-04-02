@@ -6,8 +6,8 @@ public final class ImageProcessingServiceImpl: ImageProcessingService {
     let processor: ImageProcessing
     let logger: LoggerInterface
 
-    public init(processor: ImageProcessing = ImageProcessorImpl(), logger: LoggerInterface) {
-        self.processor = processor
+    public init(logger: LoggerInterface) {
+        self.processor = ImageProcessorImpl(logger)
         self.logger = logger
     }
 

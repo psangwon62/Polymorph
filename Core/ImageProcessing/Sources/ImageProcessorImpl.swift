@@ -1,15 +1,18 @@
 import ImageProcessingInterface
+import LoggerInterface
 import UIKit
 
 public final class ImageProcessorImpl: ImageProcessing {
-    public init() {}
+    private var logger: LoggerInterface
 
-    private func cgImage(from image: UIImage) -> CGImage? {
-        return image.cgImage
+    public init(_ logger: LoggerInterface) {
+        self.logger = logger
     }
 
     public func extractColors(from image: UIImage, downscale: DownscaleOption = .x1) async -> [[UIColor]] {
+        logger.debug(image.cgImage!.bitmapInfo)
         let scaledImage = downscaleImage(image, option: downscale)
+        logger.debug(scaledImage.cgImage!.bitmapInfo)
         guard let cgImage = scaledImage.cgImage else { return [] }
 
         let width = cgImage.width
