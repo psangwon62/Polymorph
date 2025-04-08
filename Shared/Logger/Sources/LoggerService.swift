@@ -3,8 +3,12 @@ import LoggerInterface
 import os.log
 
 public struct LoggerService: LoggerInterface {
-    public init() {}
-    var logger: os.Logger = .init(subsystem: Bundle.main.bundleIdentifier ?? "com.sangwon.polymorph.logger", category: "Logger")
+    private let logger = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.sangwon.polymorph.logger", category: "Logger")
+    private var logCapture: LogCapture?
+
+    public init(capture: LogCapture? = nil) {
+        logCapture = capture
+    }
 
     public func log(_ level: LogLevel = .debug, _ items: Any..., separator: String, terminator: String) {
         #if DEBUG
@@ -17,6 +21,7 @@ public struct LoggerService: LoggerInterface {
                 case .error: logger.error("\(fullMessage, privacy: .private)")
                 case .critical: logger.critical("\(fullMessage, privacy: .private)")
             }
+            logCapture?.capture(level: level, message: fullMessage)
         #endif
     }
 
@@ -28,5 +33,23 @@ public struct LoggerService: LoggerInterface {
             return "{" + dict.map { "\($0.key): \(stringify($0.value))" }.joined(separator: ", ") + "}"
         }
         return "\(value)"
+    }
+}
+
+public class LogCapture {
+    private var logs: [(level: LogLevel, message: String)] = []
+
+    public init() {}
+
+    public func capture(level: LogLevel, message: String) {
+        logs.append((level, message))
+    }
+
+    public func getLogs() -> [(level: LogLevel, message: String)] {
+        return logs
+    }
+
+    public func clear() {
+        logs.removeAll()
     }
 }

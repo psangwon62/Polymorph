@@ -31,7 +31,25 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "Logger"),
+                .target(name: "LoggerInterface"),
             ]
+        ),
+        .target(
+            name: "LoggerTesting",
+            destinations: .iOS,
+            product: .framework,
+            bundleId: "com.sangwon.polymorph.loggertesting",
+            deploymentTargets: .iOS("16.0"),
+            sources: ["Testing/**"],
+            dependencies: [
+                .target(name: "LoggerInterface"),
+            ]
+        ),
+    ],
+    schemes: [
+        .scheme(
+            name: "LoggerTests",
+            testAction: .targets(["LoggerTests"])
         ),
     ],
     fileHeaderTemplate: nil

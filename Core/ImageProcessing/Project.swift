@@ -32,6 +32,7 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "ImageProcessing"),
+                .project(target: "LoggerTesting", path: .relativeToRoot("Shared/Logger")),
             ]
         ),
         .target(
