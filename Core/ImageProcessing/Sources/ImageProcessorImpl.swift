@@ -3,16 +3,16 @@ import LoggerInterface
 import UIKit
 
 public final class ImageProcessorImpl: ImageProcessing {
-    private var logger: LoggerInterface
+    private var logger: LoggerInterface?
 
-    public init(_ logger: LoggerInterface) {
+    public init(_ logger: LoggerInterface? = nil) {
         self.logger = logger
     }
 
     public func extractColors(from image: UIImage, downscale: DownscaleOption = .x1) async -> [[UIColor]] {
-        logger.debug("입력 BitmapInfo", image.cgImage!.bitmapInfo.pixelFormat)
+        logger?.debug("입력 BitmapInfo", image.cgImage!.bitmapInfo.pixelFormat)
         let scaledImage = downscaleImage(image, option: downscale)
-        logger.debug("출력 BitmapInfo", scaledImage.cgImage!.bitmapInfo.pixelFormat)
+        logger?.debug("출력 BitmapInfo", scaledImage.cgImage!.bitmapInfo.pixelFormat)
         guard let cgImage = scaledImage.cgImage else { return [] }
 
         let width = cgImage.width
