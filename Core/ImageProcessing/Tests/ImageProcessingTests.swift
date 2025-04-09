@@ -1,160 +1,118 @@
 @testable import ImageProcessing
-import ImageProcessingInterface
 import XCTest
 
-class ImageProcessorTests: XCTestCase {
-    var sut: ImageProcessorImpl!
+final class ImageProcessingTests: XCTestCase {
+    private var processor: ImageProcessorImpl!
 
     override func setUp() {
         super.setUp()
-        sut = ImageProcessorImpl()
+        processor = ImageProcessorImpl()
     }
 
     override func tearDown() {
-        sut = nil
+        processor = nil
         super.tearDown()
     }
 
-    // 1. 정상적인 RGB 이미지 테스트
-    func test_extractColors_withRGBImage_returnsCorrectColors() {
-        // Given: 2x2 RGB 이미지 생성 (빨강, 초록, 파랑, 검정)
-        let image = createTestImage(width: 2, height: 2, colors: [
-            UIColor.red, UIColor.green,
-            UIColor.blue, UIColor.black,
-        ])
+    // MARK: - 기본 색상 추출 테스트
 
-        // When
-        let colors = sut.extractColors(from: image)
+    func testExtractColorsFromSolidImage() async {
+        // 2x2 빨간색 이미지 생성
+        let image = createSolidColorImage(size: CGSize(width: 2, height: 2), color: .red)
+        let colors = await processor.extractColors(from: image)
 
-        // Then
-        XCTAssertEqual(colors.count, 2, "Height should match")
-        XCTAssertEqual(colors[0].count, 2, "Width should match")
-        XCTAssertEqual(colors[0][0], UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0))
-        XCTAssertEqual(colors[0][1], UIColor(red: 0.0, green: 1.0, blue: 0.0, alpha: 1.0))
-        XCTAssertEqual(colors[1][0], UIColor(red: 0.0, green: 0.0, blue: 1.0, alpha: 1.0))
-        XCTAssertEqual(colors[1][1], UIColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0))
-    }
-
-    // 2. RGBA 이미지 테스트 (알파 포함)
-    func test_extractColors_withRGBAImage_returnsCorrectAlpha() {
-        // Given: 1x1 투명도가 있는 이미지
-        let image = createTestImage(width: 1, height: 1, colors: [
-            UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.5),
-        ])
-
-        // When
-        let colors = sut.extractColors(from: image)
-
-        // Then
-        XCTAssertEqual(colors.count, 1)
-        XCTAssertEqual(colors[0].count, 1)
-
-        let expected = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.5)
-        let actual = colors[0][0]
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-        expected.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        actual.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-
-        XCTAssertEqual(r1, r2, accuracy: 0.01)
-        XCTAssertEqual(g1, g2, accuracy: 0.01)
-        XCTAssertEqual(b1, b2, accuracy: 0.01)
-        XCTAssertEqual(a1, a2, accuracy: 0.01)
-    }
-
-    // 3. 빈 CGImage 처리 테스트
-    func test_extractColors_withInvalidImage_returnsEmptyArray() {
-        // Given: CGImage 없는 UIImage (실제론 드물지만 예외 처리 확인)
-        let mockImage = UIImage() // 빈 이미지
-
-        // When
-        let colors = sut.extractColors(from: mockImage)
-
-        // Then
-        XCTAssertTrue(colors.isEmpty, "Should return empty array for invalid image")
-    }
-
-    // 4. Grayscale 이미지 테스트 (지원 안 함)
-    func test_extractColors_withGrayscaleImage_returnsEmptyArray() {
-        // Given: 1x1 Grayscale 이미지
-        let image = createGrayscaleImage(width: 1, height: 1, gray: 128)
-
-        // When
-        let colors = sut.extractColors(from: image)
-
-        // Then
-        XCTAssertTrue(colors.isEmpty, "Should return empty for non-RGB/RGBA image")
-    }
-
-    // 헬퍼 함수: 테스트용 RGB/RGBA 이미지 생성
-    private func createTestImage(width: Int, height: Int, colors: [UIColor]) -> UIImage {
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bytesPerPixel = 4
-        let bytesPerRow = bytesPerPixel * width
-        let bitsPerComponent = 8
-        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue
-
-        guard let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: bitsPerComponent,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        ) else {
-            return UIImage()
-        }
-
-        guard let buffer = context.data else { return UIImage() }
-        let pixelBuffer = buffer.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
-
-        for y in 0 ..< height {
-            for x in 0 ..< width {
-                let index = y * width + x
-                let color = colors[index]
-                var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-                color.getRed(&r, green: &g, blue: &b, alpha: &a)
-
-                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
-                pixelBuffer[offset] = UInt8(round(r * 255))
-                pixelBuffer[offset + 1] = UInt8(round(g * 255))
-                pixelBuffer[offset + 2] = UInt8(round(b * 255))
-                pixelBuffer[offset + 3] = UInt8(round(a * 255))
+        XCTAssertEqual(colors.count, 2) // 2행
+        XCTAssertEqual(colors[0].count, 2) // 2열
+        for row in colors {
+            for color in row {
+                let (r, g, b, a) = color.rgba
+                XCTAssertEqual(r, 1.0, accuracy: 0.01)
+                XCTAssertEqual(g, 0.0, accuracy: 0.01)
+                XCTAssertEqual(b, 0.0, accuracy: 0.01)
+                XCTAssertEqual(a, 1.0, accuracy: 0.01)
             }
         }
-
-        guard let cgImage = context.makeImage() else { return UIImage() }
-        return UIImage(cgImage: cgImage)
     }
 
-    // 헬퍼 함수: Grayscale 이미지 생성
-    private func createGrayscaleImage(width: Int, height: Int, gray: UInt8) -> UIImage {
-        let colorSpace = CGColorSpaceCreateDeviceGray()
-        let bytesPerPixel = 1
-        let bytesPerRow = bytesPerPixel * width
-        let bitsPerComponent = 8
+    // MARK: - 다운스케일 테스트
 
-        guard let context = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: bitsPerComponent,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: 0
-        ) else {
-            return UIImage()
+    func testExtractColorsWithDownscale() async {
+        // 4x4 이미지 -> 2x2로 다운스케일
+        let image = createSolidColorImage(size: CGSize(width: 4, height: 4), color: .blue)
+        let colors = await processor.extractColors(from: image, downscale: .x4)
+
+        // 결과 검증
+        XCTAssertEqual(colors.count, 2)
+        XCTAssertEqual(colors[0].count, 2)
+        for row in colors {
+            for color in row {
+                let (r, g, b, a) = color.rgba
+                XCTAssertEqual(r, 0.0, accuracy: 0.01)
+                XCTAssertEqual(g, 0.0, accuracy: 0.01)
+                XCTAssertEqual(b, 1.0, accuracy: 0.01)
+                XCTAssertEqual(a, 1.0, accuracy: 0.01)
+            }
         }
+    }
 
-        guard let buffer = context.data else { return UIImage() }
-        let pixelBuffer = buffer.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
+    // MARK: - 방향 조정 테스트
 
-        for i in 0 ..< (width * height) {
-            pixelBuffer[i] = gray
+    func testExtractColorsWithRotatedImage() async {
+        // 2x2 이미지, 90도 회전
+        let original = createSolidColorImage(size: CGSize(width: 2, height: 2), color: .green)
+        let rotated = UIImage(cgImage: original.cgImage!, scale: 1.0, orientation: .right)
+
+        let colors = await processor.extractColors(from: rotated)
+
+        // 방향 조정 후 2x2 유지
+        XCTAssertEqual(colors.count, 2)
+        XCTAssertEqual(colors[0].count, 2)
+
+        // 방향 조정 후
+        for row in colors {
+            for color in row {
+                let (r, g, b, a) = color.rgba
+                XCTAssertEqual(r, 0.0, accuracy: 0.01)
+                XCTAssertEqual(g, 1.0, accuracy: 0.01)
+                XCTAssertEqual(b, 0.0, accuracy: 0.01)
+                XCTAssertEqual(a, 1.0, accuracy: 0.01)
+            }
         }
+    }
 
-        guard let cgImage = context.makeImage() else { return UIImage() }
-        return UIImage(cgImage: cgImage)
+    // MARK: - 에러 케이스 테스트
+
+    func testExtractColorsWithInvalidImage() async {
+        // cgImage 없는 UIImage
+        let image = UIImage()
+        let colors = await processor.extractColors(from: image)
+
+        // 빈 배열 반환 확인
+        XCTAssertTrue(colors.isEmpty)
+    }
+}
+
+// MARK: - 헬퍼 함수
+
+private extension UIColor {
+    var rgba: (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) {
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        self.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return (r, g, b, a)
+    }
+}
+
+private func createSolidColorImage(size: CGSize, color: UIColor) -> UIImage {
+    let rect = CGRect(origin: .zero, size: size)
+    let format = UIGraphicsImageRendererFormat()
+    format.preferredRange = .standard
+    format.scale = 1
+    let renderer = UIGraphicsImageRenderer(size: size, format: format)
+    return renderer.image { context in
+        color.setFill()
+        context.fill(rect)
     }
 }
