@@ -37,30 +37,42 @@ public final class ImageProcessorImpl: ImageProcessing {
         else { return [] }
 
         let processorCount = ProcessInfo.processInfo.activeProcessorCount
-        let chunks = stride(from: 0, to: height, by: height / processorCount).map {
-            ($0, min($0 + height / processorCount, height))
-        }
-
-        return await withTaskGroup(of: (Int, [[UIColor]]).self) { group in
-            for (start, end) in chunks {
-                group.addTask(priority: .userInitiated) {
-                    let rows = self.convertToColors(
-                        pixelBuffer: pixelBuffer,
-                        width: width,
-                        startY: start,
-                        endY: end,
-                        bytesPerRow: bytesPerRow,
-                        bytesPerPixel: bytesPerPixel,
-                        bitsPerComponent: bitsPerComponent
-                    )
-                    return (start, rows)
+        let chunkSize = max(height / processorCount, 1)
+        if height < processorCount {
+            return convertToColors(
+                pixelBuffer: pixelBuffer,
+                width: width,
+                startY: 0,
+                endY: height,
+                bytesPerRow: bytesPerRow,
+                bytesPerPixel: bytesPerPixel,
+                bitsPerComponent: bitsPerComponent
+            )
+        } else {
+            let chunks = stride(from: 0, to: height, by: chunkSize).map {
+                ($0, min($0 + chunkSize, height))
+            }
+            return await withTaskGroup(of: (Int, [[UIColor]]).self) { group in
+                for (start, end) in chunks {
+                    group.addTask(priority: .userInitiated) {
+                        let rows = self.convertToColors(
+                            pixelBuffer: pixelBuffer,
+                            width: width,
+                            startY: start,
+                            endY: end,
+                            bytesPerRow: bytesPerRow,
+                            bytesPerPixel: bytesPerPixel,
+                            bitsPerComponent: bitsPerComponent
+                        )
+                        return (start, rows)
+                    }
                 }
+                var sortedResults: [(Int, [[UIColor]])] = []
+                for await result in group {
+                    sortedResults.append(result)
+                }
+                return sortedResults.sorted { $0.0 < $1.0 }.flatMap { $0.1 }
             }
-            var sortedResults: [(Int, [[UIColor]])] = []
-            for await result in group {
-                sortedResults.append(result)
-            }
-            return sortedResults.sorted { $0.0 < $1.0 }.flatMap { $0.1 }
         }
     }
 
