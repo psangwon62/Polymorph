@@ -32,7 +32,6 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "ImageProcessing"),
-                .project(target: "LoggerTesting", path: .relativeToRoot("Shared/Logger")),
             ]
         ),
         .target(
@@ -59,7 +58,7 @@ let project = Project(
                ),
         .scheme(
             name: "ImageProcessingTests",
-            buildAction: .buildAction(targets: ["ImageProcessingTests"])
+            testAction: .targets(["ImageProcessingTests"])
         ),
     ],
     fileHeaderTemplate: nil
