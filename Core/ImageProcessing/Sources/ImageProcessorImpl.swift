@@ -10,9 +10,9 @@ public final class ImageProcessorImpl: ImageProcessing {
     }
 
     public func extractColors(from image: UIImage, downscale: DownscaleOption = .x1) async -> [[UIColor]] {
-        logger?.debug("입력 BitmapInfo", image.cgImage!.bitmapInfo.pixelFormat)
+        logger?.debug("입력 BitmapInfo:", image.cgImage?.bitmapInfo.pixelFormat)
         let scaledImage = downscaleImage(image, option: downscale)
-        logger?.debug("출력 BitmapInfo", scaledImage.cgImage!.bitmapInfo.pixelFormat)
+        logger?.debug("출력 BitmapInfo:", scaledImage.cgImage?.bitmapInfo.pixelFormat)
         guard let cgImage = scaledImage.cgImage else { return [] }
 
         let width = cgImage.width
@@ -71,6 +71,7 @@ public final class ImageProcessorImpl: ImageProcessing {
         let newHeight = Int(image.size.height * scale)
         let newSize = CGSize(width: newWidth, height: newHeight)
         let format = image.imageRendererFormat
+        // 이미지를 8bit로 강제 변환 및 렌더링
         format.preferredRange = .standard
         let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { context in
@@ -87,13 +88,6 @@ public final class ImageProcessorImpl: ImageProcessing {
         colorSpace: CGColorSpace,
         bitmapInfo: UInt32
     ) -> CGContext? {
-        var adjustedBitmapInfo = bitmapInfo
-
-        if bitsPerComponent == 16 {
-            adjustedBitmapInfo &= ~CGBitmapInfo.alphaInfoMask.rawValue
-            adjustedBitmapInfo |= CGImageAlphaInfo.premultipliedLast.rawValue
-        }
-
         return CGContext(
             data: nil,
             width: width,
@@ -101,7 +95,7 @@ public final class ImageProcessorImpl: ImageProcessing {
             bitsPerComponent: bitsPerComponent,
             bytesPerRow: bytesPerRow,
             space: colorSpace,
-            bitmapInfo: adjustedBitmapInfo
+            bitmapInfo: bitmapInfo
         )
     }
 

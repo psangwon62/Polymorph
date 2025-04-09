@@ -10,7 +10,7 @@ public struct LoggerService: LoggerInterface {
         logCapture = capture
     }
 
-    public func log(_ level: LogLevel = .debug, _ items: Any..., separator: String, terminator: String) {
+    public func log(_ level: LogLevel = .debug, _ items: Any?..., separator: String, terminator: String) {
         #if DEBUG
             let message = items.map { stringify($0) }.joined(separator: separator)
             let fullMessage = "[\(level.rawValue)] \(message)\(terminator)"
@@ -25,14 +25,14 @@ public struct LoggerService: LoggerInterface {
         #endif
     }
 
-    private func stringify(_ value: Any) -> String {
+    private func stringify(_ value: Any?) -> String {
         if let array = value as? [Any] {
             return "[" + array.map { stringify($0) }.joined(separator: ", ") + "]"
         }
         if let dict = value as? [AnyHashable: Any] {
             return "{" + dict.map { "\($0.key): \(stringify($0.value))" }.joined(separator: ", ") + "}"
         }
-        return "\(value)"
+        return String(describing: value)
     }
 }
 
