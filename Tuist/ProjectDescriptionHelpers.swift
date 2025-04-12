@@ -1,7 +1,7 @@
 import ProjectDescription
 
 extension String {
-    func firstChararacterUppercased() -> String {
+    var firstCharacterUppercased: String {
         guard let first = first else {
             return ""
         }
@@ -27,7 +27,7 @@ extension Target {
         }
 
         func targetName(_ name: String) -> String {
-            return "\(name)\(rawValue.firstChararacterUppercased())"
+            return "\(name)\(rawValue.firstCharacterUppercased)"
         }
 
         func bundleId(name: String) -> String {
@@ -37,7 +37,7 @@ extension Target {
         var targetSources: SourceFilesList {
             switch self {
                 case .feature: "Sources/**"
-                default: "\(rawValue.firstChararacterUppercased())/**"
+                default: "\(rawValue.firstCharacterUppercased)/**"
             }
         }
 
