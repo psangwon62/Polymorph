@@ -1,6 +1,18 @@
 import ProjectDescription
 
 public extension Template.Item {
+    static func project(_ name: Template.Attribute) -> Self {
+        .string(
+            path: "\(name)/Project.swift",
+            contents: """
+                import ProjectDescription
+                import ProjectDescriptionHelpers
+
+                let project = Project.module(name: "\(name)")
+                """
+        )
+    }
+    
     static func interface(_ name: Template.Attribute) -> Self {
         .string(
             path: "\(name)/Interface/\(name).swift",
