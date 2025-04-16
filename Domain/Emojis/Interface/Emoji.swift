@@ -11,3 +11,7 @@ public struct Emoji: Identifiable {
         self.name = name
     }
 }
+
+public protocol Emojis {
+    func getEmojis() -> [Emoji]
+}
