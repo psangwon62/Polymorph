@@ -1,4 +1,4 @@
 import ProjectDescription
 import ProjectDescriptionHelpers
 
-let project = Project.module(name: "Emojis")
+let project = Project.module(name: "EmojiMapper")

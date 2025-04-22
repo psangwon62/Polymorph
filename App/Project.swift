@@ -28,7 +28,7 @@ let project = Project(
             sources: ["Sources/**"],
             resources: ["Resources/**"],
             dependencies: [
-                .project(target: "Emojis", path: .relativeToRoot("Domain/Emojis")),
+                .project(target: "EmojiMapper", path: .relativeToRoot("Domain/EmojiMapper")),
                 .project(target: "Logger", path: .relativeToRoot("Shared/Logger")),
                 .external(name: "ReactorKit"),
                 .external(name: "RxSwift"),
