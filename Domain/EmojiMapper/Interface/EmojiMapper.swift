@@ -1,5 +1,6 @@
 import Foundation
+import UIKit
 
 public protocol EmojiMapper {
-    // Define interface here
+    func mapEmojis(for colors: [[UIColor]]) -> [[String]]
 }

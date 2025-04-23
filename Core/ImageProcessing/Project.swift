@@ -3,6 +3,9 @@ import ProjectDescriptionHelpers
 
 let project = Project.module(
     name: "ImageProcessing",
+    dependencies: [
+        .example: [.project(target: "Logger", path: .relativeToRoot("Shared/Logger"))],
+    ],
     schemes: [
         .scheme(name: "ImageProcessingExample",
                 buildAction: .buildAction(targets: ["ImageProcessingExample"]),
