@@ -46,7 +46,7 @@ public extension Target {
     }
 
     static func target(name: String, type: TargetType, dependencies: [TargetDependency] = []) -> Target {
-        return .target(
+        var target = Target.target(
             name: type.targetName(name),
             destinations: .iOS,
             product: type.product,
@@ -55,6 +55,12 @@ public extension Target {
             sources: type.targetSources,
             dependencies: type.targetDependencies(name: name, additionalDependencies: dependencies)
         )
+        if type == .example {
+            target.infoPlist = .extendingDefault(with: [
+                "UILaunchScreen": "",
+            ])
+        }
+        return target
     }
 }
 
