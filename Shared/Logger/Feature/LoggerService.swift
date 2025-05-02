@@ -2,7 +2,7 @@ import Foundation
 import LoggerInterface
 import os.log
 
-public struct LoggerService: LoggerInterface {
+public struct LoggerService: LoggerInterface.Logger {
     private let logger = os.Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.sangwon.polymorph.logger", category: "Logger")
     private var logCapture: LogCapture?
 

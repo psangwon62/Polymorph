@@ -4,9 +4,9 @@ import UIKit
 
 public final class ImageProcessingServiceImpl: ImageProcessingService {
     let processor: ImageProcessing
-    let logger: LoggerInterface
+    let logger: Logger
 
-    public init(logger: LoggerInterface) {
+    public init(logger: Logger) {
         self.processor = ImageProcessorImpl(logger)
         self.logger = logger
     }

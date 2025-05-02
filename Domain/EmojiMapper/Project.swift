@@ -4,7 +4,9 @@ import ProjectDescriptionHelpers
 let project = Project.module(
     name: "EmojiMapper",
     dependencies: [
-        .example: [.project(target: "Logger", path: .relativeToRoot("Shared/Logger"))],
+        .example: [
+            .project(target: "Logger", path: .relativeToRoot("Shared/Logger")),
+        ],
     ],
     schemes: [
         .scheme(name: "EmojiMapperExample",

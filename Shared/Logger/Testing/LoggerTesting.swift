@@ -1,7 +1,7 @@
 import Foundation
 import LoggerInterface
 
-public struct LoggerTesting: LoggerInterface {
+public struct LoggerTesting: Logger {
     public func log(_ level: LogLevel, _ items: Any?..., separator: String, terminator: String) {
         #if DEBUG
             let message = items.map { stringify($0) }.joined(separator: separator)

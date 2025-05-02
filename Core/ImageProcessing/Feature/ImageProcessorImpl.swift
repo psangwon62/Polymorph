@@ -3,9 +3,9 @@ import LoggerInterface
 import UIKit
 
 public final class ImageProcessorImpl: ImageProcessing {
-    private var logger: LoggerInterface?
+    private var logger: Logger?
 
-    public init(_ logger: LoggerInterface? = nil) {
+    public init(_ logger: Logger? = nil) {
         self.logger = logger
     }
 

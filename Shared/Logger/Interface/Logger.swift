@@ -1,11 +1,11 @@
 import Foundation
 import os.log
 
-public protocol LoggerInterface {
+public protocol Logger {
     func log(_ level: LogLevel, _ items: Any?..., separator: String, terminator: String)
 }
 
-public extension LoggerInterface {
+public extension Logger {
     func debug(_ items: Any?..., separator: String = " ", terminator: String = "\n") {
         log(.debug, items, separator: separator, terminator: terminator)
     }
