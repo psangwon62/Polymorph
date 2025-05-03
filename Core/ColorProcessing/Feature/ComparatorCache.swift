@@ -32,7 +32,7 @@ public class ComparatorCache {
         
         logger?.debug("Can't find Cache, compute")
         let closest = compute(color)
-        logger?.debug("Computed: \(closest)")
+        logger?.debug("Computed, Closest color for \(color): \(closest)")
         store(input: color, output: closest)
         return closest
     }
