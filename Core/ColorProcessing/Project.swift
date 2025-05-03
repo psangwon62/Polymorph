@@ -7,6 +7,9 @@ let project = Project.module(
         .example: [
             .project(target: "Logger", path: .relativeToRoot("Shared/Logger")),
         ],
+        .tests: [
+            .project(target: "LoggerTesting", path: .relativeToRoot("Shared/Logger"))
+        ]
     ],
     schemes: [
         .scheme(name: "ColorProcessingExample",
