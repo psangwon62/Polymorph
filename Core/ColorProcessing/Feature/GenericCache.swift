@@ -1,11 +1,10 @@
-import ColorProcessingInterface
+import Foundation
 import LoggerInterface
-import UIKit
+@testable import ColorProcessingInterface
 
-/// Class that caches UIColor converted to CIELAB
-public class ColorCache {
-    private var cache: [UIColor: CIELAB] = [:]
-    private var accessOrder: [UIColor] = []
+public class GenericCache<Key: Hashable, Value>: CacheProtocol {
+    private var cache: [Key: Value] = [:]
+    private var accessOrder: [Key] = []
     public let maxCacheSize: Int
     private let lock = NSLock()
     private let logger: Logger?
@@ -13,34 +12,34 @@ public class ColorCache {
     public init(maxCacheSize: Int = 1000, logger: Logger? = nil) {
         self.maxCacheSize = maxCacheSize
         self.logger = logger
-        logger?.debug("ColorCache initialized with max size: \(maxCacheSize)")
+        logger?.debug("GenericCache initialized with max size: \(maxCacheSize)")
     }
 
-    public func getCIELAB(for key: UIColor, compute: (UIColor) -> CIELAB) -> CIELAB {
+    public func get(for key: Key, compute: (Key) -> Value) -> Value {
         lock.lock()
         defer { lock.unlock() }
 
         if let cached = cache[key] {
-            logger?.debug("Cache hit for color: \(key)")
+            logger?.debug("Cache hit for key: \(key)")
             updateAccessOrder(for: key)
             return cached
         }
 
-        logger?.debug("Cache miss for color: \(key)")
-        let lab = compute(key)
-        store(key: key, value: lab)
-        return lab
+        logger?.debug("Cache miss for key: \(key)")
+        let value = compute(key)
+        store(key: key, value: value)
+        return value
     }
 
     public func clear() {
         lock.lock()
         defer { lock.unlock() }
-        logger?.debug("ColorCache cleared")
+        logger?.debug("GenericCache cleared")
         cache.removeAll()
         accessOrder.removeAll()
     }
 
-    public func store(key: UIColor, value: CIELAB) {
+    public func store(key: Key, value: Value) {
         lock.lock()
         defer { lock.unlock() }
 
@@ -51,17 +50,17 @@ public class ColorCache {
         }
         cache[key] = value
         accessOrder.append(key)
-        logger?.debug("Stored color: \(key) -> \(value)")
+        logger?.debug("Stored key: \(key) -> \(value)")
     }
 
-    public func updateAccessOrder(for key: UIColor) {
+    public func updateAccessOrder(for key: Key) {
         lock.lock()
         defer { lock.unlock() }
 
         if let index = accessOrder.firstIndex(of: key) {
             accessOrder.remove(at: index)
             accessOrder.append(key)
-            logger?.debug("Updated access order for color: \(key)")
+            logger?.debug("Updated access order for key: \(key)")
         }
     }
 }

@@ -19,13 +19,13 @@ public class DefaultColorConverter: ColorConverter {
         var Z: CGFloat
     }
 
-    private let cache: ColorCache
     private let lut: ColorLUT
+    private let cache: any CacheProtocol<UIColor, CIELAB>
     private let logger: Logger?
 
-    public init(lut: ColorLUT, logger: Logger? = nil) {
-        cache = ColorCache(logger: logger)
+    public init(lut: ColorLUT, cache: any CacheProtocol<UIColor, CIELAB>, logger: Logger? = nil) {
         self.lut = lut
+        self.cache = cache
         self.logger = logger
         logger?.debug("Color Converter initialized")
     }
@@ -38,7 +38,7 @@ public class DefaultColorConverter: ColorConverter {
             logger?.debug("LUT hit for color: \(color)")
             return lab
         }
-        return cache.getCIELAB(for: color) { color in
+        return cache.get(for: color) { color in
             logger?.debug("Computing CIELAB for color: \(color)")
             let lab = self.computeCIELAB(from: color)
             logger?.debug("Computed CIELAB: \(lab)")
