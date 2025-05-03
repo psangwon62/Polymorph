@@ -2,6 +2,7 @@ import ColorProcessingInterface
 import UIKit
 import LoggerInterface
 
+/// Cache that stored UIColor and closest UIColor(GRC)
 public class ComparatorCache {
     private var cache: [UIColor: UIColor] = [:]
     private var accessOrder: [UIColor] = []
