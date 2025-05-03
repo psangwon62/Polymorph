@@ -19,11 +19,11 @@ public class DefaultColorConverter: ColorConverter {
         var Z: CGFloat
     }
 
-    private let lut: ColorLUT
+    private let lut: any LUT<UIColor, CIELAB>
     private let cache: any CacheProtocol<UIColor, CIELAB>
     private let logger: Logger?
 
-    public init(lut: ColorLUT, cache: any CacheProtocol<UIColor, CIELAB>, logger: Logger? = nil) {
+    public init(lut: any LUT<UIColor, CIELAB>, cache: any CacheProtocol<UIColor, CIELAB>, logger: Logger? = nil) {
         self.lut = lut
         self.cache = cache
         self.logger = logger
@@ -34,11 +34,12 @@ public class DefaultColorConverter: ColorConverter {
     /// - Parameter color: Input UIColor
     /// - Returns: Converted CIELAB Color
     public func toCIELAB(from color: UIColor) -> CIELAB {
-        if let lab = lut.getCIELAB(for: color) {
+        if let lab = lut.get(for: color) {
             logger?.debug("LUT hit for color: \(color)")
             return lab
         }
-        return cache.get(for: color) { color in
+        return cache.get(for: color) { [weak self] color in
+            guard let self else { return CIELAB(L: 0, a: 0, b: 0) }
             logger?.debug("Computing CIELAB for color: \(color)")
             let lab = self.computeCIELAB(from: color)
             logger?.debug("Computed CIELAB: \(lab)")

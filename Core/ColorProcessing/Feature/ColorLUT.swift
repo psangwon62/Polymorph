@@ -2,7 +2,10 @@ import ColorProcessingInterface
 import LoggerInterface
 import UIKit
 
-public class ColorLUT {
+public class ColorLUT: LUT {
+    public typealias Key = UIColor
+    public typealias Value = CIELAB
+
     private var table: [String: CIELAB] = [:]
     private let quantization: Int
     private let lock = NSLock()
@@ -36,7 +39,7 @@ public class ColorLUT {
     /// Find UIColor in table
     /// - Parameter color: Input UIColor
     /// - Returns: CIELAB in table
-    public func getCIELAB(for color: UIColor) -> CIELAB? {
+    public func get(for color: UIColor) -> CIELAB? {
         lock.lock()
         defer { lock.unlock() }
         logger?.debug("Get CIRLAB for \(color)")
@@ -48,7 +51,7 @@ public class ColorLUT {
 
     /// Return all colors in table
     /// - Returns: [GRC64(UIColor): GRC64(CIELAB)
-    public func allColors() -> [UIColor: CIELAB] {
+    public func getAll() -> [UIColor: CIELAB] {
         lock.lock()
         defer { lock.unlock() }
         logger?.debug("Return all colors in table")
@@ -106,5 +109,11 @@ public class ColorLUT {
         let key = "\(qr):\(qg):\(qb)"
         logger?.debug("Quantized key: \(key)")
         return key
+    }
+
+    public func clear() {
+        lock.lock()
+        defer { lock.unlock() }
+        table.removeAll()
     }
 }

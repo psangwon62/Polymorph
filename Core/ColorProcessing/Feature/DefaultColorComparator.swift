@@ -4,13 +4,13 @@ import UIKit
 
 public class DefaultColorComparator: ColorComparator {
     private let converter: ColorConverter
-    private let lut: ColorLUT
+    private let lut: any LUT<UIColor, CIELAB>
     private let cache: any CacheProtocol<UIColor, UIColor>
     private let logger: Logger?
 
     public init(
         converter: ColorConverter,
-        lut: ColorLUT,
+        lut: any LUT<UIColor, CIELAB>,
         cache: any CacheProtocol<UIColor, UIColor>,
         logger: Logger? = nil
     ) {
@@ -20,7 +20,7 @@ public class DefaultColorComparator: ColorComparator {
         self.logger = logger
         self.logger?.debug("Default Color Comparator initialized")
     }
-    
+
     /// Calculate difference betwwen two UIColors using CIE76
     /// - Parameters:
     ///   - color1: UIColor 1
@@ -34,7 +34,7 @@ public class DefaultColorComparator: ColorComparator {
         logger?.debug("[UIColor] Difference between \(lab1) and \(lab2) is \(result)")
         return result
     }
-    
+
     /// Calculate difference between two CIELAB Colors using CIE76
     /// - Parameters:
     ///   - lab1: CIELAB Color 1
@@ -49,18 +49,19 @@ public class DefaultColorComparator: ColorComparator {
         logger?.debug("[CIELAB] Different between \(lab1) and \(lab2) is \(difference)")
         return difference
     }
-    
+
     /// Get and cache closest GRC from input
     /// - Parameter color: Input UIColor
     /// - Returns: Closest GRC UIColor
     public func closestGoldenRatioColor(to color: UIColor) -> UIColor {
-        cache.get(for: color) { input in
+        cache.get(for: color) { [weak self] input in
+            guard let self else { return UIColor.black }
             logger?.debug("Get closest GRC for \(input)")
             let inputLAB = converter.toCIELAB(from: input)
-            let goldenColors = lut.allColors()
+            let goldenColors = lut.getAll()
             var closestColor: UIColor?
             var minDeltaE: CGFloat = .greatestFiniteMagnitude
-            
+
             for (goldenColor, goldenLAB) in goldenColors {
                 let deltaE = difference(between: inputLAB, and: goldenLAB)
                 if deltaE < minDeltaE {
