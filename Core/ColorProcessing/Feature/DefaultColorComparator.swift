@@ -4,17 +4,17 @@ import UIKit
 
 public class DefaultColorComparator: ColorComparator {
     private let converter: ColorConverter
-    private let goldenRatioLUT: ColorLUT
+    private let lut: ColorLUT
     private let cache: ComparatorCache
     private let logger: Logger?
 
     public init(
         converter: ColorConverter,
-        goldenRatioColors: [UIColor],
+        lut: ColorLUT,
         logger: Logger? = nil
     ) {
         self.converter = converter
-        goldenRatioLUT = ColorLUT(goldenRatioColors: goldenRatioColors, converter: converter, logger: logger)
+        self.lut = lut
         cache = ComparatorCache(logger: logger)
         self.logger = logger
         self.logger?.debug("Default Color Comparator initialized")
@@ -54,8 +54,9 @@ public class DefaultColorComparator: ColorComparator {
     /// - Returns: Closest GRC UIColor
     public func closestGoldenRatioColor(to color: UIColor) -> UIColor {
         cache.getClosestColor(for: color) { input in
+            logger?.debug("Get closest GRC for \(input)")
             let inputLAB = converter.toCIELAB(from: input)
-            let goldenColors = goldenRatioLUT.allColors()
+            let goldenColors = lut.allColors()
             var closestColor: UIColor?
             var minDeltaE: CGFloat = .greatestFiniteMagnitude
             
