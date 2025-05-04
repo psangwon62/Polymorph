@@ -7,18 +7,16 @@ public class ColorLUT: LUT {
     public typealias Value = CIELAB
 
     private var table: [String: CIELAB] = [:]
-    private let quantization: Int
+    private let quantization: Int = 64
     private let lock = NSLock()
     private let logger: Logger?
 
     /// Segment RGB into 16*16*16(4096) and make CIELAB LUT
     /// NOT USED FOR NOW
     /// - Parameters:
-    ///   - quantization: 양자화 정도
     ///   - converter: ColorConverter
     ///   - logger: Logger
-    public init(quantization: Int = 16, converter: ColorConverter, logger: Logger? = nil) {
-        self.quantization = quantization
+    public init(converter: ColorConverter, logger: Logger? = nil) {
         self.logger = logger
         logger?.debug("ColorLUT for \(quantization)x\(quantization)x\(quantization) initialized")
         buildTable(using: converter)
@@ -30,7 +28,6 @@ public class ColorLUT: LUT {
     ///   - converter: ColorConverter
     ///   - logger: Logger
     public init(goldenRatioColors: [UIColor], converter: ColorConverter, logger: Logger? = nil) {
-        quantization = goldenRatioColors.count
         self.logger = logger
         logger?.debug("ColorLUT for GRC\(goldenRatioColors.count) initialized")
         buildTable(from: goldenRatioColors, using: converter)
@@ -45,7 +42,7 @@ public class ColorLUT: LUT {
         logger?.debug("Get CIRLAB for \(color)")
         let key = quantizedKey(for: color)
         let result = table[key]
-        logger?.debug("Result for \(color) is \(result != nil ? "" : "not") found")
+        logger?.debug("Result for \(color) is \(result != nil ? "" : "not ")found")
         return result
     }
 
@@ -99,18 +96,24 @@ public class ColorLUT: LUT {
     /// Table key to store/find UIColor
     /// - Parameter color: UIColor
     /// - Returns: Quantized key for UIColor
-    private func quantizedKey(for color: UIColor) -> String {
-        logger?.debug("Quantize key for \(color)")
+    public func quantizedKey(for color: UIColor) -> String {
+        logger?.debug("\(quantization) Quantize key for \(color)")
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
-        color.getRed(&r, green: &g, blue: &b, alpha: nil)
-        let qr = (Int(r * CGFloat(quantization)) / quantization).clamped(0 ... 1)
-        let qg = (Int(g * CGFloat(quantization)) / quantization).clamped(0 ... 1)
-        let qb = (Int(b * CGFloat(quantization)) / quantization).clamped(0 ... 1)
-        let key = "\(qr):\(qg):\(qb)"
+        let gotRGB = color.getRed(&r, green: &g, blue: &b, alpha: nil)
+        guard gotRGB else {
+            logger?.debug("Failed to get RGB for color: \(color)")
+            return "0.0000:0.0000:0.0000"
+        }
+        logger?.debug("r: \(r), g: \(g), b: \(b)")
+        let step = 1.0 / CGFloat(quantization - 1)
+        let qr = round(r / step) * step
+        let qg = round(g / step) * step
+        let qb = round(b / step) * step
+        let key = String(format: "%.4f:%.4f:%.4f", qr, qg, qb)
         logger?.debug("Quantized key: \(key)")
         return key
     }
-
+    
     public func clear() {
         lock.lock()
         defer { lock.unlock() }

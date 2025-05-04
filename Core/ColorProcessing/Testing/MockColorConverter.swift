@@ -2,15 +2,15 @@ import UIKit
 @testable import ColorProcessingInterface
 
 public class MockColorConverter: ColorConverter {
-    var stubbedCIELAB: CIELAB?
-    var stubbedUIColor: UIColor?
+    var stubbedCIELAB = CIELAB(L: 50, a: 20, b: 10)
+    var stubbedUIColor = UIColor.black
 
     public func toCIELAB(from color: UIColor) -> CIELAB {
-        stubbedCIELAB ?? CIELAB(L: 0, a: 0, b: 0)
+        stubbedCIELAB
     }
 
     public func fromCIELAB(_ lab: CIELAB, alpha: CGFloat) -> UIColor {
-        stubbedUIColor ?? UIColor.black
+        stubbedUIColor
     }
 
     public func difference(between color1: UIColor, and color2: UIColor) -> CGFloat {

@@ -1,5 +1,5 @@
 @testable import ColorProcessing
-import ColorProcessingInterface
+@testable import ColorProcessingTesting
 import LoggerTesting
 import XCTest
 
@@ -43,7 +43,7 @@ class ColorLUTTests: XCTestCase {
     func testQuantizedKey() {
         let color = UIColor(red: 0.51, green: 0.31, blue: 0.21, alpha: 1.0)
         let key = lut.quantizedKey(for: color)
-        XCTAssertEqual(key, "0.5333:0.3333:0.2000", "양자화 키 생성") // quantization=16
+        XCTAssertEqual(key, "0.5079:0.3175:0.2063", "양자화 키 생성") // quantization=64
         XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Quantized key: \(key)") }, "양자화 로깅")
     }
 
@@ -90,19 +90,5 @@ class ColorLUTTests: XCTestCase {
         group.wait()
         let result = lut.get(for: UIColor.red)
         XCTAssertNil(result, "스레드 안전성 보장, LUT 비워짐")
-    }
-}
-
-class MockColorConverter: ColorConverter {
-    var stubbedCIELAB = CIELAB(L: 50, a: 20, b: 10)
-    var toCIELABCallCount = 0
-
-    func toCIELAB(from _: UIColor) -> CIELAB {
-        toCIELABCallCount += 1
-        return stubbedCIELAB
-    }
-
-    func fromCIELAB(_: CIELAB, alpha _: CGFloat) -> UIColor {
-        return UIColor.black
     }
 }
