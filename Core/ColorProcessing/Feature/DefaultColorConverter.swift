@@ -33,12 +33,12 @@ public class DefaultColorConverter: ColorConverter {
     /// Convert UIColor to CIELAB
     /// - Parameter color: Input UIColor
     /// - Returns: Converted CIELAB Color
-    public func toCIELAB(from color: UIColor) -> CIELAB {
+    public func toCIELAB(from color: UIColor) async -> CIELAB {
         if let lab = lut.get(for: color) {
             logger?.debug("LUT hit for color: \(color)")
             return lab
         }
-        return cache.get(for: color) { [weak self] color in
+        return await cache.get(for: color) { [weak self] color in
             guard let self else { return CIELAB(L: 0, a: 0, b: 0) }
             logger?.debug("Computing CIELAB for color: \(color)")
             let lab = self.computeCIELAB(from: color)

@@ -8,7 +8,6 @@ public class ColorLUT: LUT {
 
     private var table: [String: CIELAB] = [:]
     private let quantization: Int = 64
-    private let lock = NSLock()
     private let logger: Logger?
 
     /// Segment RGB into 16*16*16(4096) and make CIELAB LUT
@@ -16,10 +15,10 @@ public class ColorLUT: LUT {
     /// - Parameters:
     ///   - converter: ColorConverter
     ///   - logger: Logger
-    public init(converter: ColorConverter, logger: Logger? = nil) {
+    public init(converter: ColorConverter, logger: Logger? = nil) async {
         self.logger = logger
+        await buildTable(using: converter)
         logger?.debug("ColorLUT for \(quantization)x\(quantization)x\(quantization) initialized")
-        buildTable(using: converter)
     }
 
     /// Make GRC64 into CIELAB LUT
@@ -27,19 +26,17 @@ public class ColorLUT: LUT {
     ///   - goldenRatioColors: GRC array
     ///   - converter: ColorConverter
     ///   - logger: Logger
-    public init(goldenRatioColors: [UIColor], converter: ColorConverter, logger: Logger? = nil) {
+    public init(goldenRatioColors: [UIColor], converter: ColorConverter, logger: Logger? = nil) async {
         self.logger = logger
+        await buildTable(from: goldenRatioColors, using: converter)
         logger?.debug("ColorLUT for GRC\(goldenRatioColors.count) initialized")
-        buildTable(from: goldenRatioColors, using: converter)
     }
 
     /// Find UIColor in table
     /// - Parameter color: Input UIColor
     /// - Returns: CIELAB in table
     public func get(for color: UIColor) -> CIELAB? {
-        lock.lock()
-        defer { lock.unlock() }
-        logger?.debug("Get CIRLAB for \(color)")
+        logger?.debug("Get CIELAB for \(color)")
         let key = quantizedKey(for: color)
         let result = table[key]
         logger?.debug("Result for \(color) is \(result != nil ? "" : "not ")found")
@@ -47,10 +44,8 @@ public class ColorLUT: LUT {
     }
 
     /// Return all colors in table
-    /// - Returns: [GRC64(UIColor): GRC64(CIELAB)
+    /// - Returns: [GRC64(UIColor): GRC64(CIELAB)]
     public func getAll() -> [UIColor: CIELAB] {
-        lock.lock()
-        defer { lock.unlock() }
         logger?.debug("Return all colors in table")
         var result: [UIColor: CIELAB] = [:]
         for (key, lab) in table {
@@ -65,14 +60,14 @@ public class ColorLUT: LUT {
 
     /// Build quantized RGB table using quantization
     /// - Parameter converter: Converter
-    private func buildTable(using converter: ColorConverter) {
+    private func buildTable(using converter: ColorConverter) async {
         logger?.debug("Build table for \(quantization) colors")
         let step = 1.0 / CGFloat(quantization)
         for r in stride(from: 0, to: 1, by: step) {
             for g in stride(from: 0, to: 1, by: step) {
                 for b in stride(from: 0, to: 1, by: step) {
                     let color = UIColor(red: r, green: g, blue: b, alpha: 1)
-                    let lab = converter.toCIELAB(from: color)
+                    let lab = await converter.toCIELAB(from: color)
                     let key = quantizedKey(for: color)
                     table[key] = lab
                 }
@@ -84,10 +79,10 @@ public class ColorLUT: LUT {
     /// - Parameters:
     ///   - colors: GRC array
     ///   - converter: ColorConverter
-    private func buildTable(from colors: [UIColor], using converter: ColorConverter) {
+    private func buildTable(from colors: [UIColor], using converter: ColorConverter) async {
         logger?.debug("Build table for GRC\(colors.count) colors")
         for color in colors {
-            let lab = converter.toCIELAB(from: color)
+            let lab = await converter.toCIELAB(from: color)
             let key = quantizedKey(for: color)
             table[key] = lab
         }
@@ -113,10 +108,9 @@ public class ColorLUT: LUT {
         logger?.debug("Quantized key: \(key)")
         return key
     }
-    
+
     public func clear() {
-        lock.lock()
-        defer { lock.unlock() }
+        logger?.debug("ColorLUT cleared")
         table.removeAll()
     }
 }

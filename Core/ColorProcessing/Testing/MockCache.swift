@@ -1,7 +1,7 @@
 import ColorProcessingInterface
 import UIKit
 
-public class MockCache<Key: Hashable, Value>: CacheProtocol {
+public actor MockCache<Key: Hashable, Value>: CacheProtocol {
     public var stubbedValue: Value?
     public var getCallCount = 0
     public var storeCallCount = 0
@@ -14,14 +14,14 @@ public class MockCache<Key: Hashable, Value>: CacheProtocol {
     
     public init() {}
 
-    public func get(for key: Key, compute: (Key) -> Value) -> Value {
+    public func get(for key: Key, compute: (Key) async -> Value) async -> Value {
         getCallCount += 1
         lastGetKey = key
         if let value = stubbedValue {
             return value
         }
         computeCallCount += 1
-        return compute(key)
+        return await compute(key)
     }
 
     public func store(key: Key, value: Value) {

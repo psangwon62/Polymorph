@@ -1,11 +1,9 @@
 import Foundation
 
-public protocol CacheProtocol<Key, Value> {
+public protocol CacheProtocol<Key, Value>: Sendable {
     associatedtype Key: Hashable
     associatedtype Value
-    var maxCacheSize: Int { get }
-    func get(for key: Key, compute: (Key) -> Value) -> Value
-    func clear()
-    func store(key: Key, value: Value)
-    func updateAccessOrder(for key: Key)
+    func get(for key: Key, compute: (Key) async -> Value) async -> Value
+    func store(key: Key, value: Value) async
+    func clear() async
 }

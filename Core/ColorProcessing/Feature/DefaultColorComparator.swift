@@ -26,10 +26,10 @@ public class DefaultColorComparator: ColorComparator {
     ///   - color1: UIColor 1
     ///   - color2: UIColor 2
     /// - Returns: Diffence btw 2 colors
-    public func difference(between color1: UIColor, and color2: UIColor) -> CGFloat {
+    public func difference(between color1: UIColor, and color2: UIColor) async -> CGFloat {
         logger?.debug("[UIColor] Calculate difference between \(color1) and \(color2)")
-        let lab1 = converter.toCIELAB(from: color1)
-        let lab2 = converter.toCIELAB(from: color2)
+        let lab1 = await converter.toCIELAB(from: color1)
+        let lab2 = await converter.toCIELAB(from: color2)
         let result = difference(between: lab1, and: lab2)
         logger?.debug("[UIColor] Difference between \(lab1) and \(lab2) is \(result)")
         return result
@@ -53,11 +53,12 @@ public class DefaultColorComparator: ColorComparator {
     /// Get and cache closest GRC from input
     /// - Parameter color: Input UIColor
     /// - Returns: Closest GRC UIColor
-    public func closestGoldenRatioColor(to color: UIColor) -> UIColor {
-        cache.get(for: color) { [weak self] input in
+    public func closestGoldenRatioColor(to color: UIColor) async -> UIColor {
+        await cache.get(for: color) { [weak self] input in
             guard let self else { return UIColor.black }
             logger?.debug("Get closest GRC for \(input)")
-            let inputLAB = converter.toCIELAB(from: input)
+            
+            let inputLAB = await converter.toCIELAB(from: input)
             let goldenColors = lut.getAll()
             var closestColor: UIColor?
             var minDeltaE: CGFloat = .greatestFiniteMagnitude
