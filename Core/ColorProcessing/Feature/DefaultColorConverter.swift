@@ -12,13 +12,7 @@ public class DefaultColorConverter: ColorConverter {
         static let deltaCubed: CGFloat = delta * delta * delta
         static let deltaSquaredTimesThree: CGFloat = delta * delta * 3.0
     }
-
-    struct CIEXYZ: Hashable {
-        var X: CGFloat
-        var Y: CGFloat
-        var Z: CGFloat
-    }
-
+    
     private let lut: any LUT<UIColor, CIELAB>
     private let cache: any CacheProtocol<UIColor, CIELAB>
     private let logger: Logger?
