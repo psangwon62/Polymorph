@@ -13,7 +13,7 @@ public class DefaultColorConverter: ColorConverter {
         static let deltaSquaredTimesThree: CGFloat = delta * delta * 3.0
     }
 
-    private struct CIEXYZ: Hashable {
+    struct CIEXYZ: Hashable {
         var X: CGFloat
         var Y: CGFloat
         var Z: CGFloat
@@ -96,7 +96,7 @@ public class DefaultColorConverter: ColorConverter {
     /// Convert UIColor to CIEXYZ
     /// - Parameter color: Input UIColor
     /// - Returns: Converted CIEXYZ
-    private func toCIEXYZ(from color: UIColor) -> CIEXYZ {
+    func toCIEXYZ(from color: UIColor) -> CIEXYZ {
         var (r, g, b) = (CGFloat(), CGFloat(), CGFloat())
         guard color.getRed(&r, green: &g, blue: &b, alpha: nil),
               (0 ... 1).contains(r), (0 ... 1).contains(g), (0 ... 1).contains(b) else
@@ -120,7 +120,7 @@ public class DefaultColorConverter: ColorConverter {
     ///   - xyz: Input CIEXYZ Color
     ///   - alpha: Alpha value
     /// - Returns: Converted UIColor
-    private func fromCIEXYZ(_ xyz: CIEXYZ, alpha: CGFloat) -> UIColor {
+    func fromCIEXYZ(_ xyz: CIEXYZ, alpha: CGFloat) -> UIColor {
         let X = max(0, xyz.X) / 100.0
         let Y = max(0, xyz.Y) / 100.0
         let Z = max(0, xyz.Z) / 100.0
