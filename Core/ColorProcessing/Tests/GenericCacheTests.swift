@@ -2,13 +2,12 @@
 @testable import ColorProcessingInterface
 @testable import ColorProcessingTesting
 import LoggerTesting
-import UIKit
 import XCTest
 
-class GenericCacheTests: XCTestCase {
-    var cache: GenericCache<UIColor, CIELAB>!
-    var mockLogger: MockLogger!
-    var mockConverter: MockColorConverter!
+private final class GenericCacheTests: XCTestCase {
+    private var cache: GenericCache<UIColor, CIELAB>!
+    private var mockLogger: MockLogger!
+    private var mockConverter: MockColorConverter!
 
     override func setUp() async throws {
         mockLogger = MockLogger()
@@ -50,7 +49,7 @@ class GenericCacheTests: XCTestCase {
         await cache.get(for: UIColor.red) { _ in CIELAB(L: 1, a: 0, b: 0) }
         await cache.get(for: UIColor.blue) { _ in CIELAB(L: 2, a: 0, b: 0) }
         await cache.get(for: UIColor.green) { _ in CIELAB(L: 3, a: 0, b: 0) }
-        await cache.get(for: UIColor.black) { _ in CIELAB(L: 4, a: 0, b: 0) } // Evict red
+        await cache.get(for: UIColor.black) { _ in CIELAB(L: 4, a: 0, b: 0) }
         let value = await cache.get(for: UIColor.red) { _ in CIELAB(L: 5, a: 0, b: 0) }
         XCTAssertEqual(value, CIELAB(L: 5, a: 0, b: 0), "Red should be evicted and recomputed")
         XCTAssertTrue(mockLogger.containsMessage("Cache full, removing oldest: \(UIColor.red)"), "Eviction logged")

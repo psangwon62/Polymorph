@@ -1,30 +1,94 @@
-import XCTest
-@testable import ColorProcessingInterface
 @testable import ColorProcessing
+@testable import ColorProcessingInterface
 @testable import ColorProcessingTesting
+@testable import LoggerTesting
+import XCTest
 
-class ColorComparatorTests: XCTestCase {
-    var comparator: ColorComparator!
-    var mockConverter: MockColorConverter!
+private final class DefaultColorComparatorTests: XCTestCase {
+    private var mockConverter: MockColorConverter!
+    private var mockLUT: MockLUT!
+    private var mockCache: MockCache<UIColor, UIColor>!
+    private var mockLogger: MockLogger!
+    private var comparator: DefaultColorComparator!
 
-    override func setUp() {
-        super.setUp()
+    private let palette = ColorPalette()
+
+    override func setUp() async throws {
+        try await super.setUp()
         mockConverter = MockColorConverter()
-        comparator = DefaultColorComparator(converter: mockConverter)
+        mockLUT = MockLUT()
+        mockCache = MockCache()
+        mockLogger = MockLogger()
+        setMock()
+        comparator = DefaultColorComparator(converter: mockConverter, lut: mockLUT, cache: mockCache, logger: mockLogger)
     }
 
-    func testDifferenceBetweenColors() {
-        mockConverter.stubbedCIELAB = CIELAB(L: 53.23, a: 80.09, b: 67.20)
-        let color1 = UIColor.red
-        let color2 = UIColor.blue
-        let deltaE = comparator.difference(between: color1, and: color2)
-        XCTAssertEqual(deltaE, 0.0, accuracy: 0.01, "동일한 CIELAB 값은 ΔE가 0")
+    override func tearDown() {
+        mockConverter = nil
+        mockLUT = nil
+        mockCache = nil
+        mockLogger = nil
+        comparator = nil
+        super.tearDown()
     }
 
-    func testDifferenceBetweenLABValues() {
-        let lab1 = CIELAB(L: 50, a: 20, b: 10)
-        let lab2 = CIELAB(L: 55, a: 25, b: 15)
-        let deltaE = comparator.difference(between: lab1, and: lab2)
-        XCTAssertEqual(deltaE, sqrt(25 + 25 + 25), accuracy: 0.01, "CIELAB 차이 계산 정확")
+    func setMock() {
+        mockConverter.setCIELAB(palette.cieRed, for: palette.red)
+        mockConverter.setCIELAB(palette.cieGreen, for: palette.green)
+        mockLUT.stubbedColors = [
+            palette.red: palette.cieRed,
+            palette.green: palette.cieGreen,
+        ]
+    }
+
+    func testDifferenceUIColor() async {
+        let difference = await comparator.difference(between: palette.red, and: palette.green)
+        let lab1 = await mockConverter.toCIELAB(from: palette.red)
+        let lab2 = await mockConverter.toCIELAB(from: palette.green)
+        let expected = sqrt(pow(lab2.L - lab1.L, 2) + pow(lab2.a - lab1.a, 2) + pow(lab2.b - lab1.b, 2))
+
+        XCTAssertEqual(difference, expected, accuracy: 0.001, "Should calculate CIE76 difference")
+        XCTAssertTrue(mockLogger.containsMessage("[UIColor] Calculate difference between \(palette.red) and \(palette.green)"), "UIColor difference logged")
+        XCTAssertTrue(mockLogger.containsMessage("[UIColor] Difference between \(lab1) and \(lab2) is \(difference)"), "Result logged")
+    }
+
+    func testDifferenceCIELAB() {
+        let difference = comparator.difference(between: palette.cieRed, and: palette.cieGreen)
+        let expected = sqrt(pow(palette.cieGreen.L - palette.cieRed.L, 2) + pow(palette.cieGreen.a - palette.cieRed.a, 2) + pow(palette.cieGreen.b - palette.cieRed.b, 2))
+
+        XCTAssertEqual(difference, expected, accuracy: 0.001, "Should calculate CIE76 difference for CIELAB")
+        XCTAssertTrue(mockLogger.containsMessage("[CIELAB] Calculate difference between \(palette.cieRed) and \(palette.cieGreen)"), "CIELAB difference logged")
+        XCTAssertTrue(mockLogger.containsMessage("[CIELAB] Different between \(palette.cieRed) and \(palette.cieGreen) is \(difference)"), "Result logged")
+    }
+
+    func testClosestGoldenRatioColor() async {
+        let colorCloseToRed = UIColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1)
+        let closest = await comparator.closestGoldenRatioColor(to: colorCloseToRed)
+        XCTAssertEqual(closest, UIColor.red, "Should return closest GRC (red)")
+        XCTAssertTrue(mockLogger.containsMessage("Get closest GRC for \(colorCloseToRed)"), "Closest GRC logged")
+    }
+
+    func testClosestGoldenRatioColorEmptyLUT() async {
+        let emptyLUT = MockLUT()
+        let comparator = DefaultColorComparator(converter: mockConverter, lut: emptyLUT, cache: mockCache, logger: mockLogger)
+        let closest = await comparator.closestGoldenRatioColor(to: palette.red)
+
+        XCTAssertEqual(closest, UIColor.black, "Should return default color for empty LUT")
+        XCTAssertTrue(mockLogger.containsMessage("Get closest GRC for \(palette.red)"), "Closest GRC logged")
+    }
+
+    func testConcurrentClosestGoldenRatioColor() async {
+        let inputColor = UIColor(red: 0.8, green: 0.1, blue: 0.1, alpha: 1)
+        await withTaskGroup(of: UIColor.self) { group in
+            for _ in 0 ..< 100 {
+                group.addTask {
+                    await self.comparator.closestGoldenRatioColor(to: inputColor)
+                }
+            }
+            for await result in group {
+                XCTAssertEqual(result, UIColor.red, "Should consistently return closest GRC")
+            }
+        }
+        XCTAssertTrue(mockLogger.containsMessage("Get closest GRC for \(inputColor)"), "Concurrent calls logged")
     }
 }
