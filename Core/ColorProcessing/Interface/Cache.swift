@@ -1,6 +1,6 @@
 import Foundation
 
-public protocol CacheProtocol<Key, Value>: Sendable {
+public protocol Cache<Key, Value>: Sendable {
     associatedtype Key: Hashable
     associatedtype Value
     func get(for key: Key, compute: (Key) async -> Value) async -> Value

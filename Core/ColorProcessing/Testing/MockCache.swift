@@ -1,7 +1,7 @@
 import ColorProcessingInterface
 import UIKit
 
-public actor MockCache<Key: Hashable, Value>: CacheProtocol {
+public actor MockCache<Key: Hashable, Value>: Cache {
     public var stubbedValue: Value?
     public var lastGetKey: Key?
     public var lastStoredKey: Key?

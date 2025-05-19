@@ -2,7 +2,7 @@
 import Foundation
 import LoggerInterface
 
-public actor GenericCache<Key: Hashable, Value>: CacheProtocol {
+public actor GenericCache<Key: Hashable, Value>: Cache {
     private var cache: [Key: Value] = [:]
     private var accessOrder: [Key] = []
     public let maxCacheSize: Int

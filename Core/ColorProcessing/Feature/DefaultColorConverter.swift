@@ -14,10 +14,10 @@ public class DefaultColorConverter: ColorConverter {
     }
     
     private let lut: any LUT<UIColor, CIELAB>
-    private let cache: any CacheProtocol<UIColor, CIELAB>
+    private let cache: any Cache<UIColor, CIELAB>
     private let logger: Logger?
 
-    public init(lut: any LUT<UIColor, CIELAB>, cache: any CacheProtocol<UIColor, CIELAB>, logger: Logger? = nil) {
+    public init(lut: any LUT<UIColor, CIELAB>, cache: any Cache<UIColor, CIELAB>, logger: Logger? = nil) {
         self.lut = lut
         self.cache = cache
         self.logger = logger
