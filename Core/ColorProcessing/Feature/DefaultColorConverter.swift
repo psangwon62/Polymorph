@@ -9,10 +9,10 @@ public class DefaultColorConverter: ColorConverter {
         static let oneThird: CGFloat = 1.0 / 3.0
         static let fourOverTwentyNine: CGFloat = 4.0 / 29.0
         static let delta: CGFloat = 6.0 / 29.0
-        static let deltaCubed: CGFloat = delta * delta * delta
-        static let deltaSquaredTimesThree: CGFloat = delta * delta * 3.0
+        static let deltaCubed: CGFloat = pow(delta, 3)
+        static let deltaSquaredTimesThree: CGFloat = pow(delta, 2) * 3.0
     }
-    
+
     private let lut: any LUT<UIColor, CIELAB>
     private let cache: any Cache<UIColor, CIELAB>
     private let logger: Logger?
@@ -21,7 +21,7 @@ public class DefaultColorConverter: ColorConverter {
         self.lut = lut
         self.cache = cache
         self.logger = logger
-        logger?.debug("Color Converter initialized")
+        logger?.debug("Default Color Converter initialized")
     }
 
     /// Convert UIColor to CIELAB
@@ -40,7 +40,7 @@ public class DefaultColorConverter: ColorConverter {
             return lab
         }
     }
-    
+
     /// Compute UIColor -> CIEXYZ -> CIELAB
     /// - Parameter color: Input UIColor
     /// - Returns: Converted CIELAB

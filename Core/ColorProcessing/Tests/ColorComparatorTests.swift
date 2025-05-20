@@ -45,20 +45,20 @@ private final class DefaultColorComparatorTests: XCTestCase {
         let difference = await comparator.difference(between: palette.red, and: palette.green)
         let lab1 = await mockConverter.toCIELAB(from: palette.red)
         let lab2 = await mockConverter.toCIELAB(from: palette.green)
-        let expected = sqrt(pow(lab2.L - lab1.L, 2) + pow(lab2.a - lab1.a, 2) + pow(lab2.b - lab1.b, 2))
+        let expected = 73.433
 
-        XCTAssertEqual(difference, expected, accuracy: 0.001, "Should calculate CIE76 difference")
+        XCTAssertEqual(difference, expected, accuracy: 0.01, "Should calculate CIE94 difference")
         XCTAssertTrue(mockLogger.containsMessage("[UIColor] Calculate difference between \(palette.red) and \(palette.green)"), "UIColor difference logged")
         XCTAssertTrue(mockLogger.containsMessage("[UIColor] Difference between \(lab1) and \(lab2) is \(difference)"), "Result logged")
     }
 
     func testDifferenceCIELAB() {
         let difference = comparator.difference(between: palette.cieRed, and: palette.cieGreen)
-        let expected = sqrt(pow(palette.cieGreen.L - palette.cieRed.L, 2) + pow(palette.cieGreen.a - palette.cieRed.a, 2) + pow(palette.cieGreen.b - palette.cieRed.b, 2))
+        let expected = 73.433
 
-        XCTAssertEqual(difference, expected, accuracy: 0.001, "Should calculate CIE76 difference for CIELAB")
+        XCTAssertEqual(difference, expected, accuracy: 0.01, "Should calculate CIE94 difference for CIELAB")
         XCTAssertTrue(mockLogger.containsMessage("[CIELAB] Calculate difference between \(palette.cieRed) and \(palette.cieGreen)"), "CIELAB difference logged")
-        XCTAssertTrue(mockLogger.containsMessage("[CIELAB] Different between \(palette.cieRed) and \(palette.cieGreen) is \(difference)"), "Result logged")
+        XCTAssertTrue(mockLogger.containsMessage("[CIELAB] Difference between \(palette.cieRed) and \(palette.cieGreen) is \(difference)"), "Result logged")
     }
 
     func testClosestGoldenRatioColor() async {

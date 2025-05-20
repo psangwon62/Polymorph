@@ -11,7 +11,7 @@ public actor GenericCache<Key: Hashable, Value>: Cache {
     public init(maxCacheSize: Int = 1000, logger: Logger? = nil) {
         self.maxCacheSize = maxCacheSize
         self.logger = logger
-        logger?.debug("GenericCache initialized with max size: \(maxCacheSize)")
+        logger?.debug("GenericCache<\(Key.self), \(Value.self)> initialized with max size: \(maxCacheSize)")
     }
 
     @discardableResult

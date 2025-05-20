@@ -7,7 +7,7 @@ public actor MockCache<Key: Hashable, Value>: Cache {
     public var lastStoredKey: Key?
     public var lastStoredValue: Value?
     public var maxCacheSize: Int = 100
-    
+
     public init() {}
 
     public func get(for key: Key, compute: (Key) async -> Value) async -> Value {
@@ -28,9 +28,5 @@ public actor MockCache<Key: Hashable, Value>: Cache {
         stubbedValue = nil
         lastStoredKey = nil
         lastStoredValue = nil
-    }
-    
-    public func updateAccessOrder(for key: Key) {
-        
     }
 }

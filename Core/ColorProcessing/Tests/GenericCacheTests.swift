@@ -24,7 +24,7 @@ private final class GenericCacheTests: XCTestCase {
     func testInitialization() async {
         let all = await cache.getAll()
         XCTAssertEqual(all.count, 0, "Cache should be empty")
-        XCTAssertTrue(mockLogger.containsMessage("GenericCache initialized with max size: 3"), "Initialization logged")
+        XCTAssertTrue(mockLogger.containsMessage("GenericCache<UIColor, CIELAB> initialized with max size: 3"), "Initialization logged")
     }
 
     func testSetAndGet() async {

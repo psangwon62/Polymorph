@@ -28,6 +28,15 @@ private final class DefaultColorConverterTests: XCTestCase {
         super.tearDown()
     }
 
+    func testToCIELAB() async {
+        let color = UIColor(hex: "000061")
+        let lab = await converter.toCIELAB(from: color)
+
+        XCTAssertEqual(lab.L, 7.79, accuracy: 0.01, "L should match with 7.79")
+        XCTAssertEqual(lab.a, 39.00, accuracy: 0.01, "a should match with 39.00")
+        XCTAssertEqual(lab.b, -53.13, accuracy: 0.01, "b should match with -53.13")
+    }
+
     func testToCIELABWithLUT() async {
         mockLUT.stubbedColors = [palette.red: palette.cieRed]
 
