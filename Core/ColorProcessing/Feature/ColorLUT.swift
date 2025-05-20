@@ -108,9 +108,4 @@ public class ColorLUT: LUT {
         logger?.debug("Quantized key: \(key)")
         return key
     }
-
-    public func clear() {
-        logger?.debug("ColorLUT cleared")
-        table.removeAll()
-    }
 }

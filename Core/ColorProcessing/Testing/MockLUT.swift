@@ -18,8 +18,4 @@ public class MockLUT: LUT {
     public func getAll() -> [UIColor: CIELAB] {
         return stubbedColors
     }
-
-    public func clear() {
-        stubbedColors.removeAll()
-    }
 }

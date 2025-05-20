@@ -1,22 +1,4 @@
-import ColorProcessingInterface
-import SwiftUI
 import UIKit
-
-public class ContentViewModel: ObservableObject {
-    @Published var selectedColor: Color = .init(uiColor: UIColor(hex: "FF0000"))
-    @Published var closestColor: Color? = nil
-    let comparator: ColorComparator
-
-    init(comparator: ColorComparator) {
-        self.comparator = comparator
-    }
-
-    @MainActor
-    public func closestColor() async {
-        let closest = await comparator.closestGoldenRatioColor(to: UIColor(selectedColor))
-        closestColor = Color(uiColor: closest)
-    }
-}
 
 public extension UIColor {
     convenience init(hex: String) {
@@ -38,5 +20,11 @@ public extension UIColor {
         let blue = CGFloat(rgb & 0xFF) / 255.0
 
         self.init(red: red, green: green, blue: blue, alpha: 1)
+    }
+
+    var hex: String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+        getRed(&r, green: &g, blue: &b, alpha: nil)
+        return String(format: "%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
     }
 }

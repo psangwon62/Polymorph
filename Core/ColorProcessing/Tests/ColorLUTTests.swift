@@ -71,15 +71,6 @@ private final class ColorLUTTests: XCTestCase {
         XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Return all colors in table") }, "getAll 로깅")
     }
 
-    func testClear() async {
-        let colors = [palette.red, palette.green]
-        let lut = await ColorLUT(goldenRatioColors: colors, converter: mockConverter, logger: mockLogger)
-        lut.clear()
-        let result = lut.get(for: palette.red)
-        XCTAssertNil(result, "LUT 비워짐")
-        XCTAssertEqual(lut.getAll().count, 0, "모든 색상 제거")
-    }
-
     func testThreadSafeGet() async {
         let colors = [palette.green]
         let lut = await ColorLUT(goldenRatioColors: colors, converter: mockConverter, logger: mockLogger)
