@@ -2,7 +2,7 @@ import ColorProcessingInterface
 import LoggerInterface
 import UIKit
 
-public class ColorProcessingFactory {
+public class DefaultColorProcessingFactory: ColorProcessingFactory {
     private let logger: Logger?
 
     public init(logger: Logger? = nil) {
