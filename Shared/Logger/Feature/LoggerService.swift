@@ -6,11 +6,13 @@ public final class LoggerService: LoggerInterface.Logger {
     private let osLogger: os.Logger
     private let subsystem: String
     private let category: String
+    private var logCapture: LogCapture?
 
-    public init(subsystem: String? = nil, category: String = "Default") {
+    public init(subsystem: String? = nil, category: String = "Default", capture: LogCapture? = nil) {
         self.subsystem = subsystem ?? Bundle.main.bundleIdentifier ?? "com.sangwon.polymorph"
         self.category = category
         osLogger = os.Logger(subsystem: self.subsystem, category: self.category)
+        logCapture = capture
     }
 
     public func log(_ level: LogLevel, _ message: LogMessage, file: String = #file, function: String = #function, line: Int = #line) {
@@ -19,6 +21,7 @@ public final class LoggerService: LoggerInterface.Logger {
             let fullMessage = "\(contextInfo) - \(message.description)"
 
             logToOS(level: level, message: fullMessage)
+            logCapture?.capture(level: level, message: fullMessage, logMessage: message)
         #endif
     }
 
@@ -29,6 +32,7 @@ public final class LoggerService: LoggerInterface.Logger {
             let fullMessage = "\(contextInfo) - \(message)\(terminator)"
 
             logToOS(level: level, message: fullMessage)
+            logCapture?.capture(level: level, message: fullMessage, logMessage: nil)
         #endif
     }
 
@@ -57,12 +61,13 @@ public final class LoggerService: LoggerInterface.Logger {
     }
 
     private func stringify(_ value: Any?) -> String {
-        if let array = value as? [Any] {
+        guard value != nil else { return "" }
+        if let array = value! as? [Any] {
             return "[" + array.map { stringify($0) }.joined(separator: ", ") + "]"
         }
-        if let dict = value as? [AnyHashable: Any] {
+        if let dict = value! as? [AnyHashable: Any] {
             return "{" + dict.map { "\($0.key): \(stringify($0.value))" }.joined(separator: ", ") + "}"
         }
-        return String(describing: value)
+        return String(describing: value!)
     }
 }
