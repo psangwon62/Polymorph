@@ -30,7 +30,7 @@ final class ColorProcessingFactoryTests: XCTestCase {
 
         XCTAssertTrue(lut is GRC64LUT, "LUT should be \(expectedType)")
         XCTAssertEqual(lut.getAll().count, 64, "GRC64LUT should have 64 colors")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("ColorLUT initialized with 64 GRC64 entries") }, "Logger should log LUT initialization")
+        XCTAssertTrue(mockLogger.containsMessage("ColorLUT initialized with 64 GRC64 entries"), "Logger should log LUT initialization")
     }
 
     func testCreateCache() {
@@ -38,55 +38,60 @@ final class ColorProcessingFactoryTests: XCTestCase {
         let cache: any Cache<UIColor, CIELAB> = factory.createCache()
 
         XCTAssertTrue(cache is GenericCache<UIColor, CIELAB>, "Cache should be GenericCache")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("\(expectedType) initialized") }, "Logger should log cache initialization")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("\(expectedType), MaxSize:1000")), "Initialization logged")
     }
 
     func testCreateConverter_DefaultCache() {
-        let expectedType = DefaultColorConverter.self
+        let expectedConverterType = DefaultColorConverter.self
+        let expectedCacheType = GenericCache<UIColor, CIELAB>.self
         let converter = factory.createConverter(cache: nil)
 
-        XCTAssertTrue(converter is DefaultColorConverter, "Converter should be \(expectedType)")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Default Color Converter initialized") }, "Logger should log converter initialization")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("GenericCache<UIColor, CIELAB> initialized") }, "Logger should log cache initialization")
+        XCTAssertTrue(converter is DefaultColorConverter, "Converter should be \(expectedConverterType)")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Converter initialized"), "Logger should log converter initialization")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("\(expectedCacheType), MaxSize:1000")), "Initialization logged")
     }
 
     func testCreateConverter_CustomCache() async {
-        let expectedType = DefaultColorConverter.self
+        let expectedConverterType = DefaultColorConverter.self
+        let expectedCacheType = GenericCache<UIColor, CIELAB>.self
         let converter = factory.createConverter(cache: mockConverterCache)
 
-        XCTAssertTrue(converter is DefaultColorConverter, "Converter should be \(expectedType)")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Default Color Converter initialized") }, "Logger should log converter initialization")
-        XCTAssertFalse(mockLogger.debugMessages.contains { $0.contains("GenericCache initialized") }, "Default cache should not be used")
+        XCTAssertTrue(converter is DefaultColorConverter, "Converter should be \(expectedConverterType)")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Converter initialized"), "Logger should log converter initialization")
+        XCTAssertFalse(mockLogger.containsMessage(.initialized("\(expectedCacheType), MaxSize:1000")), "Default cache should not be used")
     }
 
     func testCreateComparator_DefaultCache() {
-        let expectedType = DefaultColorComparator.self
+        let expectedComparatorType = DefaultColorComparator.self
+        let expectedCacheType = GenericCache<UIColor, UIColor>.self
         let comparator = factory.createComparator(cache: nil)
 
-        XCTAssertTrue(comparator is DefaultColorComparator, "Comparator should be \(expectedType)")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Default Color Comparator initialized") }, "Logger should log comparator initialization")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("GenericCache<UIColor, UIColor> initialized") }, "Logger should log cache initialization")
+        XCTAssertTrue(comparator is DefaultColorComparator, "Comparator should be \(expectedComparatorType)")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Comparator initialized"), "Logger should log comparator initialization")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("\(expectedCacheType), MaxSize:1000")), "Initialization logged")
     }
 
     func testCreateComparator_CustomCache() async {
-        let expectedType = DefaultColorComparator.self
+        let expectedComparatorType = DefaultColorComparator.self
+        let expectedCacheType = GenericCache<UIColor, UIColor>.self
         let comparator = factory.createComparator(cache: mockComparatorCache)
 
-        XCTAssertTrue(comparator is DefaultColorComparator, "Comparator should be \(expectedType)")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Default Color Comparator initialized") }, "Logger should log comparator initialization")
-        XCTAssertFalse(mockLogger.debugMessages.contains { $0.contains("GenericCache<UIColor, UIColor> initialized") }, "Default cache should not be used")
+        XCTAssertTrue(comparator is DefaultColorComparator, "Comparator should be \(expectedComparatorType)")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Comparator initialized"), "Logger should log comparator initialization")
+        XCTAssertFalse(mockLogger.containsMessage(.initialized("\(expectedCacheType), MaxSize:1000")), "Default cache should not be used")
     }
 
     func testLoggerPropagation() async {
         let _ = factory.createLUT()
         let _ = factory.createConverter(cache: nil)
         let _ = factory.createComparator(cache: mockComparatorCache)
-        let logs = mockLogger.debugMessages
-        
-        XCTAssertTrue(logs.contains { $0.contains("ColorLUT initialized with 64 GRC64 entries") }, "LUT should log")
-        XCTAssertTrue(logs.contains { $0.contains("Default Color Converter initialized") }, "Converter should log")
-        XCTAssertTrue(logs.contains { $0.contains("Default Color Comparator initialized") }, "Comparator should log")
-        XCTAssertTrue(logs.contains { $0.contains("GenericCache<UIColor, CIELAB> initialized with max size: 1000") }, "Converter cache should log")
-        XCTAssertFalse(logs.contains { $0.contains("GenericCache<UIColor, UIColor> initialized with max size: 1000") }, "Comparator custom cache should not log GenericCache")
+        let expectedConverterCacheType = GenericCache<UIColor, CIELAB>.self
+        let expectedComparatorCacheType = GenericCache<UIColor, UIColor>.self
+
+        XCTAssertTrue(mockLogger.containsMessage("ColorLUT initialized with 64 GRC64 entries"), "LUT should log")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Converter initialized"), "Converter should log")
+        XCTAssertTrue(mockLogger.containsMessage("Default Color Comparator initialized"), "Comparator should log")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("\(expectedConverterCacheType), MaxSize:1000")), "Converter cache should log")
+        XCTAssertFalse(mockLogger.containsMessage(.initialized("\(expectedComparatorCacheType), MaxSize:1000")), "Comparator custom cache should not log GenericCache")
     }
 }

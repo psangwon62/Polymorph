@@ -1,22 +1,56 @@
 import Foundation
 import LoggerInterface
 
-public class MockLogger: Logger {
-    public private(set) var debugMessages: [String] = []
+public final class MockLogger: Logger {
+    private(set) var debugMessages: [String] = []
     private let queue = DispatchQueue(label: "com.sangwon.mockLogger")
     public init() {}
 
-    public func log(_ level: LogLevel, _ items: Any?..., separator: String, terminator: String) {
-        let message = items.map { stringify($0) }.joined(separator: separator)
-        let fullMessage = "[\(level.rawValue)] \(message)\(terminator)"
+    public func log(_ level: LogLevel, _ message: LogMessage, file: String = #file, function: String = #function, line: Int = #line) {
+        let contextInfo = createContextInfo(file: file, function: function, line: line)
+        let fullMessage = "[\(level.rawValue)] \(contextInfo) - \(message.description)"
+
         queue.sync {
-            if level == .debug {
-                debugMessages.append(fullMessage)
-            }
+            debugMessages.append(fullMessage)
+        }
+
+        #if DEBUG
+            print(fullMessage)
+        #endif
+    }
+
+    public func log(_: LogLevel, _ items: Any?..., separator: String = " ", terminator: String = "\n", file: String = #file, function: String = #function, line: Int = #line) {
+        let message = items.map { stringify($0) }.joined(separator: separator)
+        let contextInfo = createContextInfo(file: file, function: function, line: line)
+        let fullMessage = "\(contextInfo) - \(message)\(terminator)"
+
+        queue.sync {
+            debugMessages.append(fullMessage)
         }
         #if DEBUG
             print(fullMessage, terminator: "")
         #endif
+    }
+
+    public func containsMessage(_ substring: String) -> Bool {
+        queue.sync {
+            debugMessages.contains { $0.contains(substring) }
+        }
+    }
+
+    public func containsMessage(_ message: LogMessage) -> Bool {
+        queue.sync {
+            debugMessages.contains { $0.contains(message.description) }
+        }
+    }
+
+    private func createContextInfo(file: String, function: String, line: Int) -> String {
+        let fileName = extractFileName(file)
+        return "[\(fileName):\(function):\(line)]"
+    }
+
+    private func extractFileName(_ path: String) -> String {
+        return (path as NSString).lastPathComponent.replacingOccurrences(of: ".swift", with: "")
     }
 
     private func stringify(_ value: Any?) -> String {
@@ -27,11 +61,5 @@ public class MockLogger: Logger {
             return "{" + dict.map { "\($0.key): \(stringify($0.value))" }.joined(separator: ", ") + "}"
         }
         return String(describing: value)
-    }
-
-    public func containsMessage(_ substring: String) -> Bool {
-        queue.sync {
-            debugMessages.contains { $0.contains(substring) }
-        }
     }
 }

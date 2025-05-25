@@ -51,14 +51,14 @@ private final class ColorLUTTests: XCTestCase {
         let result = lut.get(for: palette.green)
         let convtertedColor = await mockConverter.toCIELAB(from: palette.green)
         XCTAssertEqual(result, convtertedColor, "LUT에서 CIELAB 조회")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Result for \(palette.green) is found") }, "조회 성공 로깅")
+        XCTAssertTrue(mockLogger.containsMessage("Result for \(palette.green) is found"), "조회 성공 로깅")
     }
 
     func testGetCIELABMiss() async {
         let lut = await ColorLUT(goldenRatioColors: [palette.red, palette.green], converter: mockConverter, logger: mockLogger)
         let result = lut.get(for: palette.black)
         XCTAssertNil(result, "없는 색상은 nil 반환")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Result for \(palette.black) is not found") }, "조회 실패 로깅")
+        XCTAssertTrue(mockLogger.containsMessage("Result for \(palette.black) is not found"), "조회 실패 로깅")
     }
 
     func testGetAll() async {
@@ -68,7 +68,7 @@ private final class ColorLUTTests: XCTestCase {
         let convtertedColor = await mockConverter.toCIELAB(from: palette.red)
         XCTAssertEqual(allColors.count, 2, "모든 색상 반환")
         XCTAssertEqual(allColors[palette.red], convtertedColor, "UIColor 키로 CIELAB 반환")
-        XCTAssertTrue(mockLogger.debugMessages.contains { $0.contains("Return all colors in table") }, "getAll 로깅")
+        XCTAssertTrue(mockLogger.containsMessage("Return all colors in table"), "getAll 로깅")
     }
 
     func testThreadSafeGet() async {

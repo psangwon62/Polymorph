@@ -11,18 +11,18 @@ public actor GenericCache<Key: Hashable, Value>: Cache {
     public init(maxCacheSize: Int = 1000, logger: Logger? = nil) {
         self.maxCacheSize = maxCacheSize
         self.logger = logger
-        logger?.debug("GenericCache<\(Key.self), \(Value.self)> initialized with max size: \(maxCacheSize)")
+        logger?.debug(.initialized("GenericCache<\(Key.self), \(Value.self)>, MaxSize:\(maxCacheSize)"))
     }
 
     @discardableResult
     public func get(for key: Key, compute: (Key) async -> Value) async -> Value {
         if let cached = cache[key] {
-            logger?.debug("Cache hit for key: \(key)")
+            logger?.debug(.cacheHit(key: "\(key)"))
             updateAccessOrder(for: key)
             return cached
         }
 
-        logger?.debug("Cache miss for key: \(key)")
+        logger?.debug(.cacheMiss(key: "\(key)"))
         let value = await compute(key)
         store(key: key, value: value)
         return value
@@ -36,11 +36,11 @@ public actor GenericCache<Key: Hashable, Value>: Cache {
         }
         cache[key] = value
         accessOrder.append(key)
-        logger?.debug("Stored key: \(key) -> \(value)")
+        logger?.debug(.cacheStore(key: key, value: value))
     }
 
     public func clear() {
-        logger?.debug("GenericCache cleared")
+        logger?.debug("GenericCache<\(Key.self), \(Value.self)> cleared")
         cache.removeAll()
         accessOrder.removeAll()
     }

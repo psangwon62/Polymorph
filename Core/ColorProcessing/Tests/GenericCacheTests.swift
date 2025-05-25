@@ -1,6 +1,7 @@
 @testable import ColorProcessing
 @testable import ColorProcessingInterface
 @testable import ColorProcessingTesting
+import LoggerInterface
 import LoggerTesting
 import XCTest
 
@@ -22,9 +23,11 @@ private final class GenericCacheTests: XCTestCase {
     }
 
     func testInitialization() async {
+        let expectedType = GenericCache<UIColor, CIELAB>.self
         let all = await cache.getAll()
         XCTAssertEqual(all.count, 0, "Cache should be empty")
-        XCTAssertTrue(mockLogger.containsMessage("GenericCache<UIColor, CIELAB> initialized with max size: 3"), "Initialization logged")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("GenericCache<UIColor, CIELAB>, MaxSize:3")), "Initialization logged")
+        XCTAssertTrue(mockLogger.containsMessage(.initialized("\(expectedType), MaxSize:3")), "Initialization logged")
     }
 
     func testSetAndGet() async {
@@ -33,8 +36,8 @@ private final class GenericCacheTests: XCTestCase {
         XCTAssertEqual(value, CIELAB(L: 50, a: 20, b: 10), "Should return computed value")
         let cachedValue = await cache.get(for: key) { _ in CIELAB(L: 0, a: 0, b: 0) }
         XCTAssertEqual(cachedValue, CIELAB(L: 50, a: 20, b: 10), "Should return cached value")
-        XCTAssertTrue(mockLogger.containsMessage("Cache miss for key: \(key)"), "Miss logged")
-        XCTAssertTrue(mockLogger.containsMessage("Cache hit for key: \(key)"), "Hit logged")
+        XCTAssertTrue(mockLogger.containsMessage(.cacheMiss(key: key)), "Miss logged")
+        XCTAssertTrue(mockLogger.containsMessage(.cacheHit(key: key)), "Hit logged")
     }
 
     func testClear() async {
@@ -42,7 +45,7 @@ private final class GenericCacheTests: XCTestCase {
         await cache.clear()
         let value = await cache.get(for: UIColor.red) { _ in CIELAB(L: 100, a: 0, b: 0) }
         XCTAssertEqual(value, CIELAB(L: 100, a: 0, b: 0), "Should compute new value after clear")
-        XCTAssertTrue(mockLogger.containsMessage("GenericCache cleared"), "Clear logged")
+        XCTAssertTrue(mockLogger.containsMessage("GenericCache<UIColor, CIELAB> cleared"), "Clear logged")
     }
 
     func testLRUEviction() async {
