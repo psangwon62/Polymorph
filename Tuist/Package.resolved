@@ -1,6 +1,15 @@
 {
-  "originHash" : "d750c6dc7a36aa55bd66631d486d4c25b18da1d29a9cc41758f864eb1e1968d3",
+  "originHash" : "5f40956ae7f40d53ac99bee6263a2af56896b2e5a4a90b9a886c18f3695ee3ea",
   "pins" : [
+    {
+      "identity" : "pinlayout",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/layoutBox/PinLayout.git",
+      "state" : {
+        "revision" : "8eaa3a15e4dcabaca4c95aea4c0ff0c9b4a67213",
+        "version" : "1.10.5"
+      }
+    },
     {
       "identity" : "reactorkit",
       "kind" : "remoteSourceControl",

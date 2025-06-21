@@ -51,7 +51,7 @@ public extension Target {
             destinations: .iOS,
             product: type.product,
             bundleId: type.bundleId(name: name),
-            deploymentTargets: .iOS("16.0"),
+            deploymentTargets: .iOS("17.0"),
             sources: type.targetSources,
             dependencies: type.targetDependencies(name: name, additionalDependencies: dependencies)
         )
