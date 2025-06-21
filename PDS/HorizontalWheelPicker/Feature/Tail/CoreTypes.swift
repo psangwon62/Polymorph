@@ -6,8 +6,6 @@ public enum TailPosition: CaseIterable {
     case bottom, top, left, right
 }
 
-// MARK: - Geometry Primitives
-
 struct Point {
     let x: CGFloat
     let y: CGFloat
@@ -17,21 +15,7 @@ struct Point {
         self.y = y
     }
     
-    var cgPoint: CGPoint { CGPoint(x: x, y: y) }
-    
     static let zero = Point(0, 0)
-    
-    static func + (lhs: Point, rhs: Point) -> Point {
-        Point(lhs.x + rhs.x, lhs.y + rhs.y)
-    }
-    
-    static func * (point: Point, scalar: CGFloat) -> Point {
-        Point(point.x * scalar, point.y * scalar)
-    }
-    
-    static func center(width: CGFloat, height: CGFloat) -> Point {
-        Point(width / 2, height / 2)
-    }
     
     static func topCenter(width: CGFloat) -> Point {
         Point(width / 2, 0)
@@ -48,12 +32,31 @@ struct Point {
     static func rightCenter(width: CGFloat, height: CGFloat) -> Point {
         Point(width, height / 2)
     }
+    
+    var cgPoint: CGPoint {
+        CGPoint(x: x, y: y)
+    }
+    
+    static func + (lhs: Point, rhs: Point) -> Point {
+        Point(lhs.x + rhs.x, lhs.y + rhs.y)
+    }
 }
 
 struct Size {
     let width: CGFloat
     let height: CGFloat
+}
+
+extension Size {
+    var cgSize: CGSize {
+        CGSize(width: width, height: height)
+    }
     
-    var swapped: Size { Size(width: height, height: width) }
-    var cgSize: CGSize { CGSize(width: width, height: height) }
+    var swapped: Size {
+        Size(width: height, height: width)
+    }
+    
+    init(cgSize: CGSize) {
+        self.init(width: cgSize.width, height: cgSize.height)
+    }
 }

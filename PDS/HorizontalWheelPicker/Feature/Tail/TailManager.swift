@@ -10,7 +10,7 @@ final class TailManager {
     
     init(position: TailPosition, size: CGSize) {
         self.position = position
-        self.size = Size(width: size.width, height: size.height)
+        self.size = Size(cgSize: size)
         self.configuration = TailConfigurationFactory.configuration(for: position)
         self.pathStrategy = PathStrategyFactory.strategy(for: position)
     }
@@ -22,24 +22,33 @@ final class TailManager {
         }
     }
     
+    var tailPath: UIBezierPath {
+        pathStrategy.generatePath(size: size, configuration: configuration)
+    }
+    
     func createMaskLayer() -> CAShapeLayer {
         let maskLayer = CAShapeLayer()
-        let tailPath = pathStrategy.generatePath(size: actualSize, configuration: configuration)
         maskLayer.path = tailPath.cgPath
         maskLayer.fillColor = UIColor.black.cgColor
         return maskLayer
     }
-    
-    func layoutTail(_ tailView: UIView, relativeTo scrollView: UIView) {
         switch position {
         case .bottom:
-            tailView.pin.below(of: scrollView, aligned: .center).marginTop(0).size(actualSize.cgSize)
+            tailView.pin.below(of: targetView, aligned: .center)
+                .marginTop(0)
+                .size(actualSize.cgSize)
         case .top:
-            tailView.pin.above(of: scrollView, aligned: .center).marginBottom(0).size(actualSize.cgSize)
+            tailView.pin.above(of: targetView, aligned: .center)
+                .marginBottom(0)
+                .size(actualSize.cgSize)
         case .left:
-            tailView.pin.before(of: scrollView, aligned: .center).marginRight(0).size(actualSize.cgSize)
+            tailView.pin.before(of: targetView, aligned: .center)
+                .marginRight(0)
+                .size(actualSize.cgSize)
         case .right:
-            tailView.pin.after(of: scrollView, aligned: .center).marginLeft(0).size(actualSize.cgSize)
+            tailView.pin.after(of: targetView, aligned: .center)
+                .marginLeft(0)
+                .size(actualSize.cgSize)
         }
     }
     
