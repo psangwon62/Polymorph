@@ -82,7 +82,7 @@ public final class HorizontalWheelPicker: UIView {
     // MARK: - Setup
     
     private func setup() {
-        setupAppearance()
+        setupView()
         setupScrollView()
         setupSelectionIndicator()
         setupTail()
@@ -90,7 +90,7 @@ public final class HorizontalWheelPicker: UIView {
         applyConfiguration()
     }
     
-    private func setupAppearance() {
+    private func setupView() {
         backgroundColor = dynamicBackgroundColor
         layer.cornerRadius = Constants.cornerRadius
     }
@@ -122,97 +122,144 @@ public final class HorizontalWheelPicker: UIView {
         scrollView.addSubview(containerView)
     }
     
+    // MARK: - Configuration
+    
     private func applyConfiguration() {
+        updateSelectionIndicatorAppearance()
+        updateLayoutManagerConfiguration()
+        invalidateLayout()
+    }
+
+    private func updateSelectionIndicatorAppearance() {
         selectionIndicator.layer.borderColor = configuration.selectionIndicatorColor.cgColor
+    }
+
+    private func updateLayoutManagerConfiguration() {
         layoutManager.updateConfiguration(configuration)
+    }
+
+    private func invalidateLayout() {
         setNeedsLayout()
         updateItemAppearance()
     }
-    
+
     // MARK: - Layout
     
     override public func layoutSubviews() {
         super.layoutSubviews()
         
+        layoutScrollView()
+        layoutSelectionIndicator()
+        layoutTail()
+        layoutContent()
+    }
+    
+    private func layoutScrollView() {
         layoutManager.layoutScrollView(scrollView, in: bounds)
-        
+    }
+
+    private func layoutSelectionIndicator() {
         selectionIndicator.pin
             .center(to: scrollView.anchor.center)
-            .size(CGSize(width: configuration.itemWidth, height: configuration.itemHeight))
-        
+            .size(CGSize(with: configuration))
+    }
+    
+    private func layoutTail() {
         let tailManager = TailManager(position: configuration.tailPosition, size: configuration.tailSize)
         tailManager.layoutTail(tailView, relativeTo: scrollView)
         
-        layoutContainerAndItems()
         TailManager.updateMask(for: tailView,
                                position: configuration.tailPosition,
                                size: configuration.tailSize)
     }
     
-    private func layoutContainerAndItems() {
-        let containerWidth = layoutManager.calculateContainerWidth(
-            itemCount: items.count,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing,
-            scrollViewWidth: scrollView.bounds.width
-        )
+    private func layoutContent() {
+        layoutContainer()
+        layoutItemLabels()
+        updateScrollViewContentSize()
+    }
+    
+    private func layoutContainer() {
+        let containerWidth = calculateContainerWidth()
         
         containerView.pin
             .top()
             .left()
             .width(containerWidth)
             .height(scrollView.bounds.height)
-        
-        layoutItemLabels()
-        updateScrollViewContentSize()
     }
-    
+
     private func layoutItemLabels() {
         guard !itemLabels.isEmpty else { return }
         
         itemLabels.enumerated().forEach { index, label in
-            let xPosition = layoutManager.calculateItemXPosition(
-                index: index,
-                itemWidth: configuration.itemWidth,
-                spacing: configuration.itemSpacing,
-                scrollViewWidth: scrollView.bounds.width
-            )
-            
+            let xPosition = calculateItemXPosition(for: index)
             label.pin
                 .left(xPosition)
                 .vCenter()
-                .size(CGSize(width: configuration.itemWidth, height: configuration.itemHeight))
+                .size(CGSize(with: configuration))
         }
     }
     
     private func updateScrollViewContentSize() {
-        let containerWidth = layoutManager.calculateContainerWidth(
+        let containerWidth = calculateContainerWidth()
+        scrollView.contentSize = CGSize(width: containerWidth, height: scrollView.bounds.height)
+    }
+    
+    // MARK: - Calculate Methods
+    
+    private func calculateContainerWidth() -> CGFloat {
+        return layoutManager.calculateContainerWidth(
             itemCount: items.count,
             itemWidth: configuration.itemWidth,
             spacing: configuration.itemSpacing,
             scrollViewWidth: scrollView.bounds.width
         )
-        scrollView.contentSize = CGSize(width: containerWidth, height: scrollView.bounds.height)
     }
     
-    // MARK: - Dark Mode Support
+    private func calculateItemXPosition(for index: Int) -> CGFloat {
+        return layoutManager.calculateItemXPosition(
+            index: index,
+            itemWidth: configuration.itemWidth,
+            spacing: configuration.itemSpacing,
+            scrollViewWidth: scrollView.bounds.width
+        )
+    }
+
+    private func calculateItemDistance(for index: Int, centerX: CGFloat) -> CGFloat {
+        return layoutManager.calculateItemDistance(
+            index: index,
+            centerX: centerX,
+            itemWidth: configuration.itemWidth,
+            spacing: configuration.itemSpacing,
+            scrollOffset: scrollView.contentOffset.x,
+            scrollViewWidth: scrollView.bounds.width
+        )
+    }
     
-    override public func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        
-        if #available(iOS 13.0, *),
-           traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection)
-        {
-            backgroundColor = dynamicBackgroundColor
-            tailView.backgroundColor = backgroundColor
-        }
+    private func calculateRealTimeEffects(for distance: CGFloat) -> VisualEffects {
+        return visualEffectsManager.calculateEffects(
+            distance: distance,
+            itemWidth: configuration.itemWidth,
+            selectedColor: configuration.selectedTextColor,
+            deselectedColor: configuration.deselectedTextColor
+        )
+    }
+    
+    private func calculateStaticEffect(for index: Int, isSelected: Bool) -> VisualEffects {
+        return visualEffectsManager.calculateStaticEffects(
+            isSelected: isSelected,
+            distance: CGFloat(abs(index - selectedIndex)),
+            selectedColor: configuration.selectedTextColor,
+            deselectedColor: configuration.deselectedTextColor
+        )
     }
     
     // MARK: - Public Methods
     
     public func configure(with items: [String], selectedIndex: Int = 0) {
         self.items = items
-        self.selectedIndex = max(0, min(selectedIndex, items.count - 1))
+        self.selectedIndex = clampIndex(selectedIndex)
         
         recreateItemLabels()
         setNeedsLayout()
@@ -223,7 +270,7 @@ public final class HorizontalWheelPicker: UIView {
     }
     
     public func selectItem(at index: Int, animated: Bool = true) {
-        guard items.indices.contains(index) else { return }
+        guard isValidIndex(index) else { return }
         
         selectedIndex = index
         scrollToIndex(index, animated: animated)
@@ -238,53 +285,44 @@ public final class HorizontalWheelPicker: UIView {
     // MARK: - Private Methods
     
     private func recreateItemLabels() {
-        itemLabels.forEach { $0.removeFromSuperview() }
-        itemLabels.removeAll()
+        clearExistingLables()
         
         itemLabels = items.map { text in
-            let label = UILabel()
-            label.text = text
-            label.font = configuration.font
-            label.textAlignment = .center
-            containerView.addSubview(label)
-            return label
+            createNewLabels(with: text)
         }
     }
+    
+    private func clearExistingLables() {
+        itemLabels.forEach { $0.removeFromSuperview() }
+        itemLabels.removeAll()
+    }
+    
+    private func createNewLabels(with text: String) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = configuration.font
+        label.textAlignment = .center
+        containerView.addSubview(label)
+        return label
+    }
+    
+    // MARK: - Appearance Updates
     
     private func updateItemAppearanceRealTime() {
         let centerX = scrollView.bounds.width/2
         
         itemLabels.enumerated().forEach { index, label in
-            let distance = layoutManager.calculateItemDistance(
-                index: index,
-                centerX: centerX,
-                itemWidth: configuration.itemWidth,
-                spacing: configuration.itemSpacing,
-                scrollOffset: scrollView.contentOffset.x,
-                scrollViewWidth: scrollView.bounds.width
-            )
-            
-            let effects = visualEffectsManager.calculateEffects(
-                distance: distance,
-                itemWidth: configuration.itemWidth,
-                selectedColor: configuration.selectedTextColor,
-                deselectedColor: configuration.deselectedTextColor
-            )
-            
-            visualEffectsManager.applyRealTimeEffects(to: label, effects: effects)
+            let distance = calculateItemDistance(for: index, centerX: centerX)
+            let effects = calculateRealTimeEffects(for: distance)
+            applyRealTimeEffects(to: label, effects: effects)
         }
     }
     
     private func updateItemAppearance() {
         itemLabels.enumerated().forEach { index, label in
             let isSelected = index == selectedIndex
-            let effects = visualEffectsManager.calculateStaticEffects(
-                isSelected: isSelected,
-                distance: CGFloat(abs(index - selectedIndex)),
-                selectedColor: configuration.selectedTextColor,
-                deselectedColor: configuration.deselectedTextColor
-            )
-            visualEffectsManager.animateEffects(to: label, effects: effects)
+            let effects = calculateStaticEffect(for: index, isSelected: isSelected)
+            animateEffects(to: label, effects: effects)
         }
     }
     
@@ -304,6 +342,26 @@ public final class HorizontalWheelPicker: UIView {
             spacing: configuration.itemSpacing
         )
         scrollView.setContentOffset(CGPoint(x: targetOffset, y: 0), animated: animated)
+    }
+    
+    // MARK: - Visual Effects
+       
+    private func applyRealTimeEffects(to label: UILabel, effects: VisualEffects) {
+        visualEffectsManager.applyRealTimeEffects(to: label, effects: effects)
+    }
+       
+    private func animateEffects(to label: UILabel, effects: VisualEffects) {
+        visualEffectsManager.animateEffects(to: label, effects: effects)
+    }
+       
+    // MARK: - Validation
+       
+    private func isValidIndex(_ index: Int) -> Bool {
+        return items.indices.contains(index)
+    }
+       
+    private func clampIndex(_ index: Int) -> Int {
+        return max(0, min(index, items.count - 1))
     }
 }
 

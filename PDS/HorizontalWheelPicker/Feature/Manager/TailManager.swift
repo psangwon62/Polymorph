@@ -32,6 +32,7 @@ final class TailManager {
         maskLayer.fillColor = UIColor.black.cgColor
         return maskLayer
     }
+    func layoutTail(_ tailView: UIView, relativeTo targetView: UIView) {
         switch position {
         case .bottom:
             tailView.pin.below(of: targetView, aligned: .center)
@@ -56,4 +57,4 @@ final class TailManager {
         let manager = TailManager(position: position, size: size)
         tailView.layer.mask = manager.createMaskLayer()
     }
-}
+    
