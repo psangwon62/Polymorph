@@ -6,7 +6,7 @@ protocol TailConfiguration: Configuration {
     var position: Position { get }
     var tipConfig: TipConfiguration { get }
     var mainCurveConfig: CurveConfiguration { get }
-    var multipliers: TailPathMultipliers { get }
+    var multipliers: PathMultipliers { get }
     var customTipClosure: ((Point, TipConfiguration) -> (Point, Point))? { get }
 
     func startPoint(for size: Size) -> Point
@@ -48,7 +48,7 @@ struct BottomTailConfiguration: TailConfiguration {
         departureExit: (0.32, 0.7)
     )
     
-    let multipliers = TailPathMultipliers(
+    let multipliers = PathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (-1, 1)
     )
@@ -80,7 +80,7 @@ struct TopTailConfiguration: TailConfiguration {
         departureExit: (0.32, 0.3)
     )
     
-    let multipliers = TailPathMultipliers(
+    let multipliers = PathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (-1, 1)
     )
@@ -112,7 +112,7 @@ struct LeftTailConfiguration: TailConfiguration {
         departureExit: (0.3, 0.68)
     )
     
-    let multipliers = TailPathMultipliers(
+    let multipliers = PathMultipliers(
         tipDeparture: (1, -1),
         mainDeparture: (1, 1)
     )
@@ -150,7 +150,7 @@ struct RightTailConfiguration: TailConfiguration {
         departureExit: (0.7, 0.32)
     )
     
-    let multipliers = TailPathMultipliers(
+    let multipliers = PathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (1, -1)
     )

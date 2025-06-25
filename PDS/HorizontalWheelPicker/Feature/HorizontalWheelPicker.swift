@@ -40,7 +40,7 @@ public final class HorizontalWheelPicker: UIView {
     private let containerView = UIView()
     private let selectionIndicator = UIView()
     private let tailView = UIView()
-    private let expandButton = ExpandButton()
+    private let expandButton = UIButton()
     
     private var itemLabels: [UILabel] = []
     private var items: [String] = []

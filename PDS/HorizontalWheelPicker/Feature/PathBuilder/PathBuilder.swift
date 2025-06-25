@@ -32,19 +32,96 @@ struct PathBuilder {
             buildTipClosure(with: startPoint)
         ]
     }
-    
+
     func expandButtonElements() -> [PathElement] {
         guard let configuration = expandButtonConfiguration else {
             assertionFailure()
             return []
         }
-        let startPoint = configuration.startPoint(for: size)
+        let start = configuration.startPoint(for: size)
         
         return [
+            bodyDeparture(with: start),
+            line(with: start),
+            bodyArrival(with: start)
         ]
     }
+}
+
+// MARK: - Expand Button Path Build Methods
+
+extension PathBuilder {
+    private func bodyDeparture(with start: Point) -> PathElement {
+        guard let configuration = expandButtonConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        let width = size.width, height = size.height
+        let intensity = configuration.curveIntensity
+        let multipliers = configuration.direction
+        
+        return .curve(.init(
+            to: start + Point(
+                width * intensity * multipliers.horizontal,
+                height * multipliers.vertical
+            ),
+            control1: start + Point(
+                width * intensity * multipliers.horizontal,
+                0
+            ),
+            control2: start + Point(
+                width * intensity * multipliers.horizontal * 0.5,
+                height * multipliers.vertical
+            )
+        ))
+    }
     
-    private func buildTipDeparture(with: Point) -> PathElement {
+    private func line(with start: Point) -> PathElement {
+        guard let configuration = expandButtonConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        let width = size.width, height = size.height
+        let multipliers = configuration.direction
+        let lineStartPoint = configuration.lineStartPoint
+        
+        return .line(start + Point(
+            width * lineStartPoint * multipliers.horizontal,
+            height * multipliers.vertical
+        ))
+    }
+    
+    private func bodyArrival(with start: Point) -> PathElement {
+        guard let configuration = expandButtonConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        let width = size.width, height = size.height
+        let intensity = configuration.curveIntensity
+        let multipliers = configuration.direction
+        let lineStartPoint = configuration.lineStartPoint
+        
+        return .curve(.init(
+            to: start + Point(
+                width * multipliers.horizontal,
+                0
+            ),
+            control1: start + Point(
+                width * (1 - intensity * 0.5) * multipliers.horizontal,
+                height * multipliers.vertical
+            ),
+            control2: start + Point(
+                width * lineStartPoint * multipliers.horizontal,
+                0
+            )
+        ))
+    }
+}
+
+// MARK: - Tail Path Build Methods
+
+extension PathBuilder {
+    private func buildTipDeparture(with start: Point) -> PathElement {
         guard let configuration = tailConfiguration else {
             assertionFailure()
             return .line(.zero)
@@ -54,15 +131,15 @@ struct PathBuilder {
         let multipliers = configuration.multipliers.tipDeparture
         
         return .curve(.init(
-            to: with + Point(
+            to: start + Point(
                 tip.radius * multipliers.horizontal * tip.mainOffset.x,
                 tip.radius * multipliers.vertical * tip.mainOffset.y
             ),
-            control1: with + Point(
+            control1: start + Point(
                 tip.radius * tip.controlOffset1.x,
                 tip.radius * tip.controlOffset1.y
             ),
-            control2: with + Point(
+            control2: start + Point(
                 tip.radius * tip.controlOffset2.x,
                 tip.radius * tip.controlOffset2.y
             )
@@ -92,7 +169,7 @@ struct PathBuilder {
         return .line(configuration.lineEndPoint(for: size))
     }
     
-    private func buildMainDeparture(with: Point) -> PathElement {
+    private func buildMainDeparture(with start: Point) -> PathElement {
         guard let configuration = tailConfiguration else {
             assertionFailure()
             return .line(.zero)
@@ -103,7 +180,7 @@ struct PathBuilder {
         let multipliers = configuration.multipliers.mainDeparture
     
         return .curve(.init(
-            to: with + Point(
+            to: start + Point(
                 tip.radius * multipliers.horizontal * tip.mainOffset.x,
                 tip.radius * multipliers.vertical * tip.mainOffset.y
             ),
@@ -112,7 +189,7 @@ struct PathBuilder {
         ))
     }
     
-    private func buildTipClosure(with: Point) -> PathElement {
+    private func buildTipClosure(with start: Point) -> PathElement {
         guard let configuration = tailConfiguration else {
             assertionFailure()
             return .line(.zero)
@@ -122,19 +199,19 @@ struct PathBuilder {
         let (control1, control2): (Point, Point)
         
         if let customClosure = configuration.customTipClosure {
-            (control1, control2) = customClosure(with, tip)
+            (control1, control2) = customClosure(start, tip)
         } else {
-            control1 = with + Point(
+            control1 = start + Point(
                 tip.radius * -tip.controlOffset2.x,
                 tip.radius * tip.controlOffset2.y
             )
-            control2 = with + Point(
+            control2 = start + Point(
                 tip.radius * -tip.controlOffset1.x,
                 tip.radius * tip.controlOffset1.y
             )
         }
         
-        return .curve(.init(to: with, control1: control1, control2: control2))
+        return .curve(.init(to: start, control1: control1, control2: control2))
     }
     
     private func controlPoint(_ offset: Point) -> Point {
