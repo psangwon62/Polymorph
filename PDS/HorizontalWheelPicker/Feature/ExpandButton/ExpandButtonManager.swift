@@ -1,17 +1,15 @@
 import UIKit
 
-// MARK: - Main Tail Manager
-
-final class TailManager {
+final class ExpandButtonManager {
     let position: Position
     let size: Size
-    let configuration: TailConfiguration
+    let configuration: ExpandButtonConfiguration
     let pathStrategy: PathGenerationStrategy
     
     init(position: Position, size: CGSize) {
         self.position = position
         self.size = Size(cgSize: size)
-        self.configuration = TailConfigurationFactory.configuration(for: position)
+        self.configuration = ExpandButtonConfigurationFactory.configuration(for: position)
         self.pathStrategy = PathStrategyFactory.strategy(for: position)
     }
     
@@ -22,40 +20,40 @@ final class TailManager {
         }
     }
     
-    var tailPath: UIBezierPath {
+    var maskPath: UIBezierPath {
         pathStrategy.generatePath(size: actualSize, configuration: configuration)
     }
     
     func createMaskLayer() -> CAShapeLayer {
         let maskLayer = CAShapeLayer()
-        maskLayer.path = tailPath.cgPath
+        maskLayer.path = maskPath.cgPath
         maskLayer.fillColor = UIColor.black.cgColor
         return maskLayer
     }
-
-    func layoutTail(_ tailView: UIView, relativeTo targetView: UIView) {
+    
+    func layoutButton(_ buttonView: UIView, relativeTo targetView: UIView) {
         switch position {
         case .bottom:
-            tailView.pin.below(of: targetView, aligned: .center)
+            buttonView.pin.below(of: targetView, aligned: .center)
                 .marginTop(0)
                 .size(actualSize.cgSize)
         case .top:
-            tailView.pin.above(of: targetView, aligned: .center)
+            buttonView.pin.above(of: targetView, aligned: .center)
                 .marginBottom(0)
                 .size(actualSize.cgSize)
         case .left:
-            tailView.pin.before(of: targetView, aligned: .center)
+            buttonView.pin.before(of: targetView, aligned: .center)
                 .marginRight(0)
                 .size(actualSize.cgSize)
         case .right:
-            tailView.pin.after(of: targetView, aligned: .center)
+            buttonView.pin.after(of: targetView, aligned: .center)
                 .marginLeft(0)
                 .size(actualSize.cgSize)
         }
     }
     
-    static func updateMask(for tailView: UIView, position: Position, size: CGSize) {
-        let manager = TailManager(position: position, size: size)
-        tailView.layer.mask = manager.createMaskLayer()
+    static func updateMask(for buttonView: UIView, position: Position, size: CGSize) {
+        let manager = ExpandButtonManager(position: position, size: size)
+        buttonView.layer.mask = manager.createMaskLayer()
     }
 }

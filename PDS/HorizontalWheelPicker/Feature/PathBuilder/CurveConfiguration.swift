@@ -1,6 +1,6 @@
 import Foundation
 
-struct MainCurveConfiguration {
+struct CurveConfiguration {
     let approachEntry: Point
     let approachExit: Point
     let departureEntry: Point

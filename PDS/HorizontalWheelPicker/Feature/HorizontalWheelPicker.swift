@@ -40,6 +40,7 @@ public final class HorizontalWheelPicker: UIView {
     private let containerView = UIView()
     private let selectionIndicator = UIView()
     private let tailView = UIView()
+    private let expandButton = ExpandButton()
     
     private var itemLabels: [UILabel] = []
     private var items: [String] = []
@@ -86,6 +87,7 @@ public final class HorizontalWheelPicker: UIView {
         setupScrollView()
         setupSelectionIndicator()
         setupTail()
+        setupExpandButton()
         setupHierarchy()
         applyConfiguration()
     }
@@ -115,10 +117,15 @@ public final class HorizontalWheelPicker: UIView {
         tailView.backgroundColor = backgroundColor
     }
     
+    private func setupExpandButton() {
+        expandButton.backgroundColor = backgroundColor
+    }
+    
     private func setupHierarchy() {
         addSubview(scrollView)
         addSubview(selectionIndicator)
         addSubview(tailView)
+        addSubview(expandButton)
         scrollView.addSubview(containerView)
     }
     
@@ -151,6 +158,7 @@ public final class HorizontalWheelPicker: UIView {
         layoutScrollView()
         layoutSelectionIndicator()
         layoutTail()
+        layoutExpandButton()
         layoutContent()
     }
     
@@ -171,6 +179,12 @@ public final class HorizontalWheelPicker: UIView {
         TailManager.updateMask(for: tailView,
                                position: configuration.tailPosition,
                                size: configuration.tailSize)
+    }
+    
+    private func layoutExpandButton() {
+        let expandButtonManager = ExpandButtonManager(position: configuration.expandButtonPosition, size: configuration.expandButtonSize)
+        expandButtonManager.layoutButton(expandButton, relativeTo: scrollView)
+        ExpandButtonManager.updateMask(for: expandButton, position: configuration.expandButtonPosition, size: configuration.expandButtonSize)
     }
     
     private func layoutContent() {

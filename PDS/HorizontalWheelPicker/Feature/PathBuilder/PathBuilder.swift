@@ -2,14 +2,26 @@ import Foundation
 
 struct PathBuilder {
     private let size: Size
-    private let configuration: TailConfiguration
+    private let tailConfiguration: TailConfiguration?
+    private let expandButtonConfiguration: ExpandButtonConfiguration?
     
-    init(size: Size, configuration: TailConfiguration) {
+    init(size: Size, tailConfiguration: TailConfiguration) {
         self.size = size
-        self.configuration = configuration
+        self.tailConfiguration = tailConfiguration
+        self.expandButtonConfiguration = nil
     }
     
-    func buildElements() -> [PathElement] {
+    init(size: Size, expandButtonConfiguration: ExpandButtonConfiguration) {
+        self.size = size
+        self.expandButtonConfiguration = expandButtonConfiguration
+        self.tailConfiguration = nil
+    }
+    
+    func tailElements() -> [PathElement] {
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return []
+        }
         let startPoint = configuration.startPoint(for: size)
         
         return [
@@ -21,7 +33,23 @@ struct PathBuilder {
         ]
     }
     
+    func expandButtonElements() -> [PathElement] {
+        guard let configuration = expandButtonConfiguration else {
+            assertionFailure()
+            return []
+        }
+        let startPoint = configuration.startPoint(for: size)
+        
+        return [
+        ]
+    }
+    
     private func buildTipDeparture(with: Point) -> PathElement {
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        
         let tip = configuration.tipConfig
         let multipliers = configuration.multipliers.tipDeparture
         
@@ -42,6 +70,11 @@ struct PathBuilder {
     }
     
     private func buildMainApproach() -> PathElement {
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        
         let main = configuration.mainCurveConfig
         return .curve(.init(
             to: configuration.lineStartPoint(for: size),
@@ -51,10 +84,20 @@ struct PathBuilder {
     }
     
     private func buildBodyEdge() -> PathElement {
-        .line(configuration.lineEndPoint(for: size))
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        
+        return .line(configuration.lineEndPoint(for: size))
     }
     
     private func buildMainDeparture(with: Point) -> PathElement {
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
+        
         let tip = configuration.tipConfig
         let main = configuration.mainCurveConfig
         let multipliers = configuration.multipliers.mainDeparture
@@ -70,9 +113,14 @@ struct PathBuilder {
     }
     
     private func buildTipClosure(with: Point) -> PathElement {
-        let tip = configuration.tipConfig
+        guard let configuration = tailConfiguration else {
+            assertionFailure()
+            return .line(.zero)
+        }
         
+        let tip = configuration.tipConfig
         let (control1, control2): (Point, Point)
+        
         if let customClosure = configuration.customTipClosure {
             (control1, control2) = customClosure(with, tip)
         } else {

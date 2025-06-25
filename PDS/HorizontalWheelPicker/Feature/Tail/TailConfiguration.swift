@@ -2,11 +2,11 @@ import UIKit
 
 // MARK: - Configuration Protocol
 
-protocol TailConfiguration {
-    var position: TailPosition { get }
+protocol TailConfiguration: Configuration {
+    var position: Position { get }
     var tipConfig: TipConfiguration { get }
-    var mainCurveConfig: MainCurveConfiguration { get }
-    var multipliers: PathMultipliers { get }
+    var mainCurveConfig: CurveConfiguration { get }
+    var multipliers: TailPathMultipliers { get }
     var customTipClosure: ((Point, TipConfiguration) -> (Point, Point))? { get }
 
     func startPoint(for size: Size) -> Point
@@ -33,7 +33,7 @@ extension TailConfiguration {
 // MARK: - Bottom Tail Configuration
 
 struct BottomTailConfiguration: TailConfiguration {
-    let position: TailPosition = .bottom
+    let position: Position = .bottom
     
     let tipConfig = TipConfiguration(
         mainOffset: (0.8, -0.5),
@@ -41,14 +41,14 @@ struct BottomTailConfiguration: TailConfiguration {
         controlOffset2: (0.2, -0.05)
     )
     
-    let mainCurveConfig = MainCurveConfiguration(
+    let mainCurveConfig = CurveConfiguration(
         approachEntry: (0.68, 0.7),
         approachExit: (0.85, 0.1),
         departureEntry: (0.15, 0.1),
         departureExit: (0.32, 0.7)
     )
     
-    let multipliers = PathMultipliers(
+    let multipliers = TailPathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (-1, 1)
     )
@@ -65,7 +65,7 @@ struct BottomTailConfiguration: TailConfiguration {
 // MARK: - Top Tail Configuration
 
 struct TopTailConfiguration: TailConfiguration {
-    let position: TailPosition = .top
+    let position: Position = .top
     
     let tipConfig = TipConfiguration(
         mainOffset: (0.8, 0.5),
@@ -73,14 +73,14 @@ struct TopTailConfiguration: TailConfiguration {
         controlOffset2: (0.6, 0.2)
     )
     
-    let mainCurveConfig = MainCurveConfiguration(
+    let mainCurveConfig = CurveConfiguration(
         approachEntry: (0.68, 0.3),
         approachExit: (0.85, 0.9),
         departureEntry: (0.15, 0.9),
         departureExit: (0.32, 0.3)
     )
     
-    let multipliers = PathMultipliers(
+    let multipliers = TailPathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (-1, 1)
     )
@@ -97,7 +97,7 @@ struct TopTailConfiguration: TailConfiguration {
 // MARK: - Left Tail Configuration
 
 struct LeftTailConfiguration: TailConfiguration {
-    let position: TailPosition = .left
+    let position: Position = .left
     
     let tipConfig = TipConfiguration(
         mainOffset: (0.5, 0.8),
@@ -105,14 +105,14 @@ struct LeftTailConfiguration: TailConfiguration {
         controlOffset2: (0.2, -0.6)
     )
     
-    let mainCurveConfig = MainCurveConfiguration(
+    let mainCurveConfig = CurveConfiguration(
         approachEntry: (0.3, 0.32),
         approachExit: (0.9, 0.15),
         departureEntry: (0.9, 0.85),
         departureExit: (0.3, 0.68)
     )
     
-    let multipliers = PathMultipliers(
+    let multipliers = TailPathMultipliers(
         tipDeparture: (1, -1),
         mainDeparture: (1, 1)
     )
@@ -135,7 +135,7 @@ struct LeftTailConfiguration: TailConfiguration {
 // MARK: - Right Tail Configuration
 
 struct RightTailConfiguration: TailConfiguration {
-    let position: TailPosition = .right
+    let position: Position = .right
     
     let tipConfig = TipConfiguration(
         mainOffset: (-0.5, 0.8),
@@ -143,14 +143,14 @@ struct RightTailConfiguration: TailConfiguration {
         controlOffset2: (-0.2, 0.6)
     )
     
-    let mainCurveConfig = MainCurveConfiguration(
+    let mainCurveConfig = CurveConfiguration(
         approachEntry: (0.7, 0.68),
         approachExit: (0.1, 0.85),
         departureEntry: (0.1, 0.15),
         departureExit: (0.7, 0.32)
     )
     
-    let multipliers = PathMultipliers(
+    let multipliers = TailPathMultipliers(
         tipDeparture: (1, 1),
         mainDeparture: (1, -1)
     )

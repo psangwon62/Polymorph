@@ -2,8 +2,31 @@ import Foundation
 
 // MARK: - Core Types
 
-public enum TailPosition: CaseIterable {
+public enum Position: CaseIterable {
     case bottom, top, left, right
+}
+
+extension Position {
+    var opposite: Position {
+        switch self {
+        case .bottom:
+            return .top
+        case .top:
+            return .bottom
+        case .left:
+            return .right
+        case .right:
+            return .left
+        }
+    }
+    
+    var isVertical: Bool {
+        self == .bottom || self == .top
+    }
+    
+    var isHorizontal: Bool {
+        self == .right || self == .left
+    }
 }
 
 struct Point {
@@ -31,6 +54,18 @@ struct Point {
     
     static func rightCenter(width: CGFloat, height: CGFloat) -> Point {
         Point(width, height / 2)
+    }
+    
+    static func bottomLeft(height: CGFloat) -> Point {
+        Point(0, height)
+    }
+    
+    static func topRight(width: CGFloat) -> Point {
+        Point(width, 0)
+    }
+    
+    static func bottomRight(width: CGFloat, height: CGFloat) -> Point {
+        Point(width, height)
     }
     
     var cgPoint: CGPoint {
