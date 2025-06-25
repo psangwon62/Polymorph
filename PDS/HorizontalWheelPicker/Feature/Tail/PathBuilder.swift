@@ -10,31 +10,31 @@ struct PathBuilder {
     }
     
     func buildElements() -> [PathElement] {
-        let center = configuration.startPoint(for: size)
+        let startPoint = configuration.startPoint(for: size)
         
         return [
-            buildTipDeparture(center: center),
+            buildTipDeparture(with: startPoint),
             buildMainApproach(),
             buildBodyEdge(),
-            buildMainDeparture(center: center),
-            buildTipClosure(center: center)
+            buildMainDeparture(with: startPoint),
+            buildTipClosure(with: startPoint)
         ]
     }
     
-    private func buildTipDeparture(center: Point) -> PathElement {
+    private func buildTipDeparture(with: Point) -> PathElement {
         let tip = configuration.tipConfig
         let multipliers = configuration.multipliers.tipDeparture
         
         return .curve(.init(
-            to: center + Point(
+            to: with + Point(
                 tip.radius * multipliers.horizontal * tip.mainOffset.x,
                 tip.radius * multipliers.vertical * tip.mainOffset.y
             ),
-            control1: center + Point(
+            control1: with + Point(
                 tip.radius * tip.controlOffset1.x,
                 tip.radius * tip.controlOffset1.y
             ),
-            control2: center + Point(
+            control2: with + Point(
                 tip.radius * tip.controlOffset2.x,
                 tip.radius * tip.controlOffset2.y
             )
@@ -54,13 +54,13 @@ struct PathBuilder {
         .line(configuration.lineEndPoint(for: size))
     }
     
-    private func buildMainDeparture(center: Point) -> PathElement {
+    private func buildMainDeparture(with: Point) -> PathElement {
         let tip = configuration.tipConfig
         let main = configuration.mainCurveConfig
         let multipliers = configuration.multipliers.mainDeparture
     
         return .curve(.init(
-            to: center + Point(
+            to: with + Point(
                 tip.radius * multipliers.horizontal * tip.mainOffset.x,
                 tip.radius * multipliers.vertical * tip.mainOffset.y
             ),
@@ -69,24 +69,24 @@ struct PathBuilder {
         ))
     }
     
-    private func buildTipClosure(center: Point) -> PathElement {
+    private func buildTipClosure(with: Point) -> PathElement {
         let tip = configuration.tipConfig
         
         let (control1, control2): (Point, Point)
         if let customClosure = configuration.customTipClosure {
-            (control1, control2) = customClosure(center, tip)
+            (control1, control2) = customClosure(with, tip)
         } else {
-            control1 = center + Point(
+            control1 = with + Point(
                 tip.radius * -tip.controlOffset2.x,
                 tip.radius * tip.controlOffset2.y
             )
-            control2 = center + Point(
+            control2 = with + Point(
                 tip.radius * -tip.controlOffset1.x,
                 tip.radius * tip.controlOffset1.y
             )
         }
         
-        return .curve(.init(to: center, control1: control1, control2: control2))
+        return .curve(.init(to: with, control1: control1, control2: control2))
     }
     
     private func controlPoint(_ offset: Point) -> Point {

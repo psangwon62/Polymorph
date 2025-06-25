@@ -23,7 +23,7 @@ final class TailManager {
     }
     
     var tailPath: UIBezierPath {
-        pathStrategy.generatePath(size: size, configuration: configuration)
+        pathStrategy.generatePath(size: actualSize, configuration: configuration)
     }
     
     func createMaskLayer() -> CAShapeLayer {

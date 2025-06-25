@@ -51,7 +51,7 @@ public class ViewController: UIViewController {
         wheelPicker.configuration.selectedTextColor = .label
         wheelPicker.configuration.deselectedTextColor = .secondaryLabel
         wheelPicker.configuration.selectionIndicatorColor = .systemBlue
-        wheelPicker.configuration.tailPosition = .left
+        wheelPicker.configuration.tailPosition = .bottom
     }
 }
 
