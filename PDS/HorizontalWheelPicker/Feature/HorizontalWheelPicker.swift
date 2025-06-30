@@ -121,6 +121,9 @@ public final class HorizontalWheelPicker: UIView {
         expandButton.backgroundColor = dynamicBackgroundColor
         expandButton.setImage(.init(systemName: "ellipsis"), for: .normal)
         expandButton.tintColor = .secondaryLabel
+        expandButton.addAction(.init { _ in
+            print("touch")
+        }, for: .touchUpInside)
     }
 
     private func setupHierarchy() {

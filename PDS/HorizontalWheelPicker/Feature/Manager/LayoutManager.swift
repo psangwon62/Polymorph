@@ -11,7 +11,13 @@ final class LayoutManager {
     }
 
     func layoutScrollView(_ scrollView: UIView, in _: CGRect) {
+        let tailSize = configuration.tailSize
+        let expandButtonSize = configuration.expandButtonSize
+        let tailPosition = configuration.tailPosition
+        
         scrollView.pin.all()
+            .marginTop(tailPosition == .top ? tailSize.height : expandButtonSize.height)
+            .marginBottom(tailPosition == .top ? expandButtonSize.height : tailSize.height)
     }
 
     func layoutSelectionIndicator(_ indicatorView: UIView, relativeTo targetView: UIView) {
