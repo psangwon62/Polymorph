@@ -7,6 +7,7 @@ import PackageDescription
     let packageSettings = PackageSettings(
         productTypes: ["RxSwift": .framework,
                        "ReactorKit": .framework,
+                       "RxCocoa": .framework,
                        "PinLayout": .framework]
     )
 #endif
