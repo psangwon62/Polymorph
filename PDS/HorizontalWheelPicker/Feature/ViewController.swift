@@ -1,8 +1,12 @@
 import UIKit
+import ReactorKit
+import RxSwift
 
 public class ViewController: UIViewController {
     private let wheelPicker = HorizontalWheelPicker()
     private let resultLabel = UILabel()
+    private let disposeBag = DisposeBag()
+    private let emojis = ["😀", "😎", "🤔", "👽", "🤖", "👾", "😈", "👻", "🤡", "🎉"]
     
     override public func viewDidLoad() {
         super.viewDidLoad()
@@ -40,10 +44,9 @@ public class ViewController: UIViewController {
     }
     
     private func setupWheelPicker() {
-        let emojis = ["😀", "😎", "🤔", "👽", "🤖", "👾", "😈", "👻", "🤡", "🎉"]
-        
-        wheelPicker.delegate = self
-        wheelPicker.configure(with: emojis, selectedIndex: 1)
+        // Reactor 생성 및 주입
+        let reactor = HorizontalWheelPickerReactor(items: emojis, selectedIndex: 1)
+        wheelPicker.reactor = reactor
         
         wheelPicker.configuration.itemWidth = 60
         wheelPicker.configuration.itemHeight = 60
@@ -52,12 +55,13 @@ public class ViewController: UIViewController {
         wheelPicker.configuration.deselectedTextColor = .secondaryLabel
         wheelPicker.configuration.selectionIndicatorColor = .systemBlue
         wheelPicker.configuration.tailPosition = .top
-    }
-}
-
-extension ViewController: HorizontalWheelPickerDelegate {
-    public func wheelPicker(_ picker: HorizontalWheelPicker, didSelectItemAt index: Int) {
-        let emojis = ["😀", "😎", "🤔", "👽", "🤖", "👾", "😈", "👻", "🤡", "🎉"]
-        resultLabel.text = "Selected: \(emojis[index])"
+        
+        // Rx로 선택 이벤트 구독하여 라벨 업데이트
+        wheelPicker.rx_itemSelected
+            .subscribe(onNext: { [weak self] index in
+                guard let self = self else { return }
+                self.resultLabel.text = "Selected: \(self.emojis[index])"
+            })
+            .disposed(by: disposeBag)
     }
 }

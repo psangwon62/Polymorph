@@ -1,14 +1,13 @@
+import ReactorKit
+import RxCocoa
+import RxSwift
 import UIKit
-
-// MARK: - Delegate
-
-public protocol HorizontalWheelPickerDelegate: AnyObject {
-    func wheelPicker(_ picker: HorizontalWheelPicker, didSelectItemAt index: Int)
-}
 
 // MARK: - Main Component
 
-public final class HorizontalWheelPicker: UIView {
+public final class HorizontalWheelPicker: UIView, View {
+    public var disposeBag = DisposeBag()
+
     // MARK: - Constants
 
     enum Constants {
@@ -26,8 +25,6 @@ public final class HorizontalWheelPicker: UIView {
     }
 
     // MARK: - Public Properties
-
-    public weak var delegate: HorizontalWheelPickerDelegate?
 
     public var configuration = WheelPickerConfiguration() {
         didSet { applyConfiguration() }
@@ -49,6 +46,9 @@ public final class HorizontalWheelPicker: UIView {
     private lazy var layoutManager = LayoutManager()
     private lazy var visualEffectsManager = VisualEffectsManager()
     private lazy var scrollPhysicsManager = ScrollPhysicsManager()
+
+    private var itemSelectedSubject = PublishSubject<Int>()
+    public var rx_itemSelected: Observable<Int> { itemSelectedSubject.asObservable() }
 
     // MARK: - Computed Properties
 
@@ -121,8 +121,8 @@ public final class HorizontalWheelPicker: UIView {
         expandButton.backgroundColor = dynamicBackgroundColor
         expandButton.setImage(.init(systemName: "ellipsis"), for: .normal)
         expandButton.tintColor = .secondaryLabel
-        expandButton.addAction(.init { _ in
-            print("touch")
+        expandButton.addAction(.init { [weak self] _ in
+            // ReactorKit 액션으로 처리할 수 있도록 별도 바인딩 필요
         }, for: .touchUpInside)
     }
 
@@ -245,30 +245,56 @@ public final class HorizontalWheelPicker: UIView {
         )
     }
 
-    // MARK: - Public Methods
+    // MARK: - ReactorKit 바인딩
 
-    public func configure(with items: [String], selectedIndex: Int = 0) {
+    public func bind(reactor: HorizontalWheelPickerReactor) {
+        // 아이템 목록 바인딩
+        reactor.state.map { $0.items }
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] items in
+                self?.setItemsRx(items)
+            })
+            .disposed(by: disposeBag)
+        // 선택 인덱스 바인딩
+        reactor.state.map { $0.selectedIndex }
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] index in
+                self?.setSelectedIndexRx(index)
+            })
+            .disposed(by: disposeBag)
+        // 아이템 선택 이벤트 → 액션 전달
+        rx_itemSelected
+            .map { HorizontalWheelPickerReactor.Action.selectItem($0) }
+            .bind(to: reactor.action)
+            .disposed(by: disposeBag)
+        // (필요시) expandButton 등 추가 액션 바인딩
+    }
+
+    // MARK: - Rx 상태 적용
+
+    private func setItemsRx(_ items: [String]) {
         self.items = items
-        self.selectedIndex = clampIndex(selectedIndex)
-
         recreateItemLabels()
         setNeedsLayout()
         layoutIfNeeded()
-
         updateItemAppearanceRealTime()
-        scrollToIndex(self.selectedIndex, animated: false)
     }
 
-    public func selectItem(at index: Int, animated: Bool = true) {
+    private func setSelectedIndexRx(_ index: Int) {
         guard isValidIndex(index) else { return }
-
-        selectedIndex = index
-        scrollToIndex(index, animated: animated)
-        updateItemAppearance()
-        delegate?.wheelPicker(self, didSelectItemAt: index)
-
-        if configuration.enableHapticFeedback {
-            hapticGenerator.impactOccurred()
+        if !scrollView.isTracking && !scrollView.isDecelerating {
+            scrollToIndex(index, animated: true)
+            selectedIndex = index
+            updateItemAppearance()
+            if configuration.enableHapticFeedback {
+                hapticGenerator.impactOccurred()
+            }
+        } else {
+            // 스크롤 중에는 selectedIndex만 갱신하고, 실시간 효과만 적용
+            selectedIndex = index
+            updateItemAppearanceRealTime()
         }
     }
 
@@ -360,15 +386,18 @@ public final class HorizontalWheelPicker: UIView {
 extension HorizontalWheelPicker: UIScrollViewDelegate {
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         updateItemAppearanceRealTime()
-
-        let newIndex = calculateSelectedIndex(from: scrollView.contentOffset.x)
-
+        let newIndex = layoutManager.calculateSelectedIndex(
+            from: scrollView.contentOffset.x,
+            itemWidth: configuration.itemWidth,
+            spacing: configuration.itemSpacing,
+            itemCount: items.count
+        )
         if newIndex != selectedIndex {
             selectedIndex = newIndex
             if configuration.enableHapticFeedback {
                 hapticGenerator.impactOccurred()
             }
-            delegate?.wheelPicker(self, didSelectItemAt: selectedIndex)
+            itemSelectedSubject.onNext(selectedIndex)
         }
     }
 
@@ -383,22 +412,12 @@ extension HorizontalWheelPicker: UIScrollViewDelegate {
             spacing: configuration.itemSpacing,
             itemCount: items.count
         )
-
         let targetOffset = layoutManager.calculateTargetOffset(
             index: targetIndex,
             itemWidth: configuration.itemWidth,
             spacing: configuration.itemSpacing
         )
-
         targetContentOffset.pointee = CGPoint(x: targetOffset, y: 0)
-
-        if targetIndex != selectedIndex {
-            selectedIndex = targetIndex
-            if configuration.enableHapticFeedback {
-                hapticGenerator.impactOccurred()
-            }
-            delegate?.wheelPicker(self, didSelectItemAt: selectedIndex)
-        }
     }
 
     public func scrollViewDidEndDecelerating(_: UIScrollView) {
