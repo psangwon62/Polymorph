@@ -1,6 +1,5 @@
 import ReactorKit
 import RxCocoa
-import RxSwift
 import UIKit
 
 // MARK: - Main Component
@@ -40,15 +39,11 @@ public final class HorizontalWheelPicker: UIView, View {
 
     private var itemLabels: [UILabel] = []
     private var items: [String] = []
-    private var selectedIndex: Int = 0
 
     private lazy var hapticGenerator = UIImpactFeedbackGenerator(style: .light)
     private lazy var layoutManager = LayoutManager()
     private lazy var visualEffectsManager = VisualEffectsManager()
     private lazy var scrollPhysicsManager = ScrollPhysicsManager()
-
-    private var itemSelectedSubject = PublishSubject<Int>()
-    public var rx_itemSelected: Observable<Int> { itemSelectedSubject.asObservable() }
 
     // MARK: - Computed Properties
 
@@ -98,7 +93,6 @@ public final class HorizontalWheelPicker: UIView, View {
     private func setupScrollView() {
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.delegate = self
         scrollView.decelerationRate = .fast
         scrollView.bounces = true
         scrollView.alwaysBounceHorizontal = true
@@ -121,9 +115,6 @@ public final class HorizontalWheelPicker: UIView, View {
         expandButton.backgroundColor = dynamicBackgroundColor
         expandButton.setImage(.init(systemName: "ellipsis"), for: .normal)
         expandButton.tintColor = .secondaryLabel
-        expandButton.addAction(.init { [weak self] _ in
-            // ReactorKit 액션으로 처리할 수 있도록 별도 바인딩 필요
-        }, for: .touchUpInside)
     }
 
     private func setupHierarchy() {
@@ -207,15 +198,6 @@ public final class HorizontalWheelPicker: UIView, View {
 
     // MARK: - Calculate Methods
 
-    private func calculateContainerWidth() -> CGFloat {
-        return layoutManager.calculateContainerWidth(
-            itemCount: items.count,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing,
-            scrollViewWidth: scrollView.bounds.width
-        )
-    }
-
     private func calculateItemDistance(for index: Int, centerX: CGFloat) -> CGFloat {
         return layoutManager.calculateItemDistance(
             index: index,
@@ -236,7 +218,7 @@ public final class HorizontalWheelPicker: UIView, View {
         )
     }
 
-    private func calculateStaticEffect(for index: Int, isSelected: Bool) -> VisualEffects {
+    private func calculateStaticEffect(for index: Int, isSelected: Bool, selectedIndex: Int) -> VisualEffects {
         return visualEffectsManager.calculateStaticEffects(
             isSelected: isSelected,
             distance: CGFloat(abs(index - selectedIndex)),
@@ -245,10 +227,9 @@ public final class HorizontalWheelPicker: UIView, View {
         )
     }
 
-    // MARK: - ReactorKit 바인딩
+    // MARK: - ReactorKit Binding
 
     public func bind(reactor: HorizontalWheelPickerReactor) {
-        // 아이템 목록 바인딩
         reactor.state.map { $0.items }
             .distinctUntilChanged()
             .observe(on: MainScheduler.instance)
@@ -256,7 +237,7 @@ public final class HorizontalWheelPicker: UIView, View {
                 self?.setItemsRx(items)
             })
             .disposed(by: disposeBag)
-        // 선택 인덱스 바인딩
+
         reactor.state.map { $0.selectedIndex }
             .distinctUntilChanged()
             .observe(on: MainScheduler.instance)
@@ -264,37 +245,88 @@ public final class HorizontalWheelPicker: UIView, View {
                 self?.setSelectedIndexRx(index)
             })
             .disposed(by: disposeBag)
-        // 아이템 선택 이벤트 → 액션 전달
-        rx_itemSelected
+
+        scrollView.rx.contentOffset
+            .observe(on: MainScheduler.instance)
+            .do(onNext: { [weak self] _ in
+                self?.updateItemAppearanceRealTime()
+            })
+            .compactMap { [weak self] offset -> Int? in
+                guard let self = self, !self.items.isEmpty else { return nil }
+                return self.layoutManager.calculateSelectedIndex(
+                    from: offset.x,
+                    itemWidth: self.configuration.itemWidth,
+                    spacing: self.configuration.itemSpacing,
+                    itemCount: self.items.count
+                )
+            }
+            .distinctUntilChanged()
+            .do(onNext: { [weak self] _ in
+                guard let self = self else { return }
+                if self.configuration.enableHapticFeedback {
+                    self.hapticGenerator.impactOccurred()
+                }
+            })
             .map { HorizontalWheelPickerReactor.Action.selectItem($0) }
             .bind(to: reactor.action)
             .disposed(by: disposeBag)
-        // (필요시) expandButton 등 추가 액션 바인딩
+
+        scrollView.rx.willEndDragging
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] event in
+                guard let self = self else { return }
+                let targetIndex = self.scrollPhysicsManager.calculateTargetIndex(
+                    currentOffset: self.scrollView.contentOffset.x,
+                    velocity: event.velocity.x,
+                    itemWidth: self.configuration.itemWidth,
+                    spacing: self.configuration.itemSpacing,
+                    itemCount: self.items.count
+                )
+                let targetOffset = self.layoutManager.calculateTargetOffset(
+                    index: targetIndex,
+                    itemWidth: self.configuration.itemWidth,
+                    spacing: self.configuration.itemSpacing
+                )
+                event.targetContentOffset.pointee = CGPoint(x: targetOffset, y: 0)
+            })
+            .disposed(by: disposeBag)
+
+        Observable.merge(
+            scrollView.rx.didEndDecelerating.asObservable(),
+            scrollView.rx.didEndScrollingAnimation.asObservable()
+        )
+        .observe(on: MainScheduler.instance)
+        .subscribe(onNext: { [weak self] _ in
+            self?.updateItemAppearance()
+        })
+        .disposed(by: disposeBag)
+
+        expandButton.rx.tap
+            .map { HorizontalWheelPickerReactor.Action.expandButtonTapped }
+            .bind(to: reactor.action)
+            .disposed(by: disposeBag)
     }
 
-    // MARK: - Rx 상태 적용
+    // MARK: - Rx State Application
 
     private func setItemsRx(_ items: [String]) {
         self.items = items
         recreateItemLabels()
         setNeedsLayout()
         layoutIfNeeded()
-        updateItemAppearanceRealTime()
+        if let initialIndex = reactor?.currentState.selectedIndex {
+            scrollToIndex(initialIndex, animated: false)
+            updateItemAppearance()
+        } else {
+            updateItemAppearanceRealTime()
+        }
     }
 
     private func setSelectedIndexRx(_ index: Int) {
         guard isValidIndex(index) else { return }
+
         if !scrollView.isTracking && !scrollView.isDecelerating {
             scrollToIndex(index, animated: true)
-            selectedIndex = index
-            updateItemAppearance()
-            if configuration.enableHapticFeedback {
-                hapticGenerator.impactOccurred()
-            }
-        } else {
-            // 스크롤 중에는 selectedIndex만 갱신하고, 실시간 효과만 적용
-            selectedIndex = index
-            updateItemAppearanceRealTime()
         }
     }
 
@@ -302,7 +334,6 @@ public final class HorizontalWheelPicker: UIView, View {
 
     private func recreateItemLabels() {
         clearExistingLables()
-
         itemLabels = items.map { text in
             createNewLabels(with: text)
         }
@@ -326,7 +357,6 @@ public final class HorizontalWheelPicker: UIView, View {
 
     private func updateItemAppearanceRealTime() {
         let centerX = scrollView.bounds.width / 2
-
         itemLabels.enumerated().forEach { index, label in
             let distance = calculateItemDistance(for: index, centerX: centerX)
             let effects = calculateRealTimeEffects(for: distance)
@@ -335,20 +365,13 @@ public final class HorizontalWheelPicker: UIView, View {
     }
 
     private func updateItemAppearance() {
+        guard let selectedIndex = reactor?.currentState.selectedIndex else { return }
+
         itemLabels.enumerated().forEach { index, label in
             let isSelected = index == selectedIndex
-            let effects = calculateStaticEffect(for: index, isSelected: isSelected)
+            let effects = calculateStaticEffect(for: index, isSelected: isSelected, selectedIndex: selectedIndex)
             animateEffects(to: label, effects: effects)
         }
-    }
-
-    private func calculateSelectedIndex(from contentOffset: CGFloat) -> Int {
-        return layoutManager.calculateSelectedIndex(
-            from: contentOffset,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing,
-            itemCount: items.count
-        )
     }
 
     private func scrollToIndex(_ index: Int, animated: Bool) {
@@ -377,54 +400,7 @@ public final class HorizontalWheelPicker: UIView, View {
     }
 
     private func clampIndex(_ index: Int) -> Int {
+        guard !items.isEmpty else { return 0 }
         return max(0, min(index, items.count - 1))
-    }
-}
-
-// MARK: - UIScrollViewDelegate
-
-extension HorizontalWheelPicker: UIScrollViewDelegate {
-    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        updateItemAppearanceRealTime()
-        let newIndex = layoutManager.calculateSelectedIndex(
-            from: scrollView.contentOffset.x,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing,
-            itemCount: items.count
-        )
-        if newIndex != selectedIndex {
-            selectedIndex = newIndex
-            if configuration.enableHapticFeedback {
-                hapticGenerator.impactOccurred()
-            }
-            itemSelectedSubject.onNext(selectedIndex)
-        }
-    }
-
-    public func scrollViewWillEndDragging(_ scrollView: UIScrollView,
-                                          withVelocity velocity: CGPoint,
-                                          targetContentOffset: UnsafeMutablePointer<CGPoint>)
-    {
-        let targetIndex = scrollPhysicsManager.calculateTargetIndex(
-            currentOffset: scrollView.contentOffset.x,
-            velocity: velocity.x,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing,
-            itemCount: items.count
-        )
-        let targetOffset = layoutManager.calculateTargetOffset(
-            index: targetIndex,
-            itemWidth: configuration.itemWidth,
-            spacing: configuration.itemSpacing
-        )
-        targetContentOffset.pointee = CGPoint(x: targetOffset, y: 0)
-    }
-
-    public func scrollViewDidEndDecelerating(_: UIScrollView) {
-        updateItemAppearance()
-    }
-
-    public func scrollViewDidEndScrollingAnimation(_: UIScrollView) {
-        updateItemAppearance()
     }
 }
